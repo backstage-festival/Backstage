@@ -31,15 +31,17 @@ Scan the QR code with Expo Go.
 
 ## Project structure
 
+```text
 src/
-├─ app/ screens and layouts (Expo Router)
-├─ components/ reusable UI components
-├─ store/ Zustand stores
-├─ domain/ entities, repository interfaces, business rules
-├─ use-cases/ application logic
-├─ di/ dependency wiring
-└─ infrastructure/ storage, api, auth, location, network, map
-assets/map/ offline map assets
+├─ app/              screens and layouts (Expo Router)
+├─ components/       reusable UI components
+├─ store/            Zustand stores
+├─ domain/           entities, repository interfaces, business rules
+├─ use-cases/        application logic
+├─ di/               dependency wiring
+└─ infrastructure/   storage, api, auth, location, network, map
+assets/map/          offline map assets
+```
 
 ## Team
 
