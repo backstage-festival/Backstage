@@ -105,6 +105,60 @@ CREATE TABLE IF NOT EXISTS transit_alerts (
   fetched_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id            TEXT PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  high_contrast      INTEGER NOT NULL DEFAULT 0 CHECK (high_contrast IN (0, 1)),
+  cvd_patterns       INTEGER NOT NULL DEFAULT 0 CHECK (cvd_patterns IN (0, 1)),
+  text_scale         INTEGER NOT NULL DEFAULT 100 CHECK (text_scale IN (100, 150, 200)),
+  reduce_motion      INTEGER NOT NULL DEFAULT 0 CHECK (reduce_motion IN (0, 1)),
+  leave_alert_mode   TEXT NOT NULL DEFAULT 'sound' CHECK (leave_alert_mode IN ('sound', 'vibrate', 'muted')),
+  alert_lead_minutes INTEGER NOT NULL DEFAULT 10 CHECK (alert_lead_minutes IN (5, 10, 15)),
+  snoozed_until      TEXT,
+  updated_at         TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS badges (
+  id          TEXT PRIMARY KEY NOT NULL,
+  code        TEXT NOT NULL UNIQUE,
+  name        TEXT NOT NULL,
+  description TEXT NOT NULL,
+  icon        TEXT NOT NULL,
+  goal        INTEGER NOT NULL CHECK (goal >= 1)
+);
+
+CREATE TABLE IF NOT EXISTS user_badges (
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  badge_id  TEXT NOT NULL REFERENCES badges(id) ON DELETE CASCADE,
+  progress  INTEGER NOT NULL DEFAULT 0 CHECK (progress >= 0),
+  earned_at TEXT,
+  synced_at TEXT,
+  PRIMARY KEY (user_id, badge_id)
+);
+
+CREATE TABLE IF NOT EXISTS datasets (
+  id            TEXT PRIMARY KEY NOT NULL,
+  event_id      TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  kind          TEXT NOT NULL CHECK (kind IN ('lineup', 'map', 'stops', 'departures', 'weather')),
+  version       INTEGER NOT NULL CHECK (version >= 1),
+  size_bytes    INTEGER NOT NULL CHECK (size_bytes >= 0),
+  sha256        TEXT NOT NULL CHECK (length(sha256) = 64),
+  url           TEXT NOT NULL,
+  valid_to      TEXT,
+  published_at  TEXT NOT NULL,
+  downloaded_at TEXT,
+  UNIQUE (event_id, kind)
+);
+
+CREATE TABLE IF NOT EXISTS weather_forecasts (
+  event_id      TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  forecast_for  TEXT NOT NULL,
+  temperature_c REAL NOT NULL,
+  rain_mm       REAL NOT NULL CHECK (rain_mm >= 0),
+  summary       TEXT NOT NULL,
+  fetched_at    TEXT NOT NULL,
+  PRIMARY KEY (event_id, forecast_for)
+);
+
 CREATE INDEX IF NOT EXISTS idx_stages_event          ON stages(event_id);
 CREATE INDEX IF NOT EXISTS idx_concerts_event_starts ON concerts(event_id, starts_at);
 CREATE INDEX IF NOT EXISTS idx_concerts_stage        ON concerts(stage_id);
@@ -115,4 +169,5 @@ CREATE INDEX IF NOT EXISTS idx_check_ins_concert     ON check_ins(concert_id);
 CREATE INDEX IF NOT EXISTS idx_saved_places_user     ON saved_places(user_id);
 CREATE INDEX IF NOT EXISTS idx_outbox_status_next    ON outbox_messages(status, next_attempt_at);
 CREATE INDEX IF NOT EXISTS idx_outbox_crew_created   ON outbox_messages(crew_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_user_badges_badge     ON user_badges(badge_id);
 `;
