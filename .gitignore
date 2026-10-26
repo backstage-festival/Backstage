@@ -41,3 +41,9 @@ example
 # generated native folders
 /ios
 /android
+
+# env
+.env
+
+# Supabase schema – shared privately, not in the public repo
+supabase/migrations/
