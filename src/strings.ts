@@ -72,8 +72,6 @@ export const strings = {
       }) =>
         `${p.artist}, Scena ${p.stageNumber} ${p.stageName}, ${p.start} do ${p.end}` +
         (p.inPlan ? ", w planie" : ""),
-      /** Appended to card label: „kolizja ze Sceną 1 od 22:15”. */
-      conflict: (stageNumber: number, time: string) => `kolizja ze Sceną ${stageNumber} od ${time}`,
       played: "zagrane",
       cardHint: "Otwiera kartę koncertu",
       add: (artist: string, stageNumber: number, start: string) =>
