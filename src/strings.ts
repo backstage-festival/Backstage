@@ -99,7 +99,6 @@ export const strings = {
     progress: (done: number, total: number) => `${done}/${total}`,
     refreshSelf: "Odświeżę sam",
     a11y: {
-      online: (time: string) => `Online. Zsynchronizowano o ${time}.`,
       /** „1 wiadomość czeka na wysłanie.” / „3 wiadomości czekają na wysłanie.” */
       queued: (n: number) =>
         `${n} ${messagesWord(n)} ${plural(n, "czeka", "czekają", "czeka")} na wysłanie.`,
