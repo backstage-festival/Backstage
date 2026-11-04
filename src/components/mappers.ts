@@ -222,6 +222,7 @@ export interface MessageBubbleOptions {
   currentUserId: string;
   now?: Date;
   /** C04: after this many minutes in the queue the message is stale (default 20). */
+  // TEMP: replace with domain rule from #21 (Domain & QA)
   staleAfterMin?: number;
   /** authorId → display name (OutboxMessage has only authorId). */
   authorNames?: Readonly<Record<string, string>>;
@@ -242,7 +243,9 @@ export function messageStatusOf(
   sendingIds?: ReadonlySet<string>,
 ): MessageStatus {
   if (message.status === "sent") return "sent";
+  // TEMP: replace with domain rule from #21 (Domain & QA)
   if (message.attempts > 0 && message.nextAttemptAt === null) return "failed";
+  // TEMP: replace with domain rule from #21 (Domain & QA)
   if (now.getTime() - ms(message.createdAt) >= staleAfterMin * MINUTE_MS) return "stale";
   if (sendingIds?.has(message.id)) return "sending";
   return "queued";
