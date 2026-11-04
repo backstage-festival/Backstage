@@ -1,9 +1,11 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
+import { ThemeProvider } from "@/theme/ThemeProvider";
+
 export default function RootLayout() {
   return (
-    <>
+    <ThemeProvider>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
         <Stack.Screen name="(tabs)" />
@@ -19,6 +21,6 @@ export default function RootLayout() {
         <Stack.Screen name="badges" />
         <Stack.Screen name="settings/accessibility" />
       </Stack>
-    </>
+    </ThemeProvider>
   );
 }
