@@ -310,7 +310,7 @@ export const textStyles = {
   dataXL: { fontFamily: fonts.monoSemiBold, uppercase: true, levels: [[32, 36], [40, 44], [48, 52]] },
   crewCode: { fontFamily: fonts.monoBold, uppercase: true, levels: [[24, 28, 2.4], [30, 36, 1.5], [36, 44]] },
   dataL: { fontFamily: fonts.monoSemiBold, uppercase: true, levels: [[20, 24], [26, 32], [32, 40]] },
-  data: { fontFamily: fonts.monoSemiBold, levels: [[15, 20], [22, 30], [28, 38]] },
+  data: { fontFamily: fonts.monoSemiBold, uppercase: true, levels: [[15, 20], [22, 30], [28, 38]] },
   alertMeta: { fontFamily: fonts.monoSemiBold, levels: [[13, 20], [20, 30], [26, 38]] },
   codeL: { fontFamily: fonts.monoBold, uppercase: true, levels: [[14, 18], [18, 24], [22, 28]] },
   input: { fontFamily: fonts.monoRegular, levels: [[16, 24], [22, 33], [28, 42]] },
