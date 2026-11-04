@@ -32,6 +32,7 @@ export default function CrewScreen() {
             })}
             onCancel={noop}
             onSendAnyway={noop}
+            onRetry={noop}
             onDelete={noop}
           />
         ))}

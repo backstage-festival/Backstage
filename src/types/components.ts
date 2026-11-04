@@ -122,7 +122,8 @@ export interface MessageBubbleProps {
   status?: MessageStatus; // only 'me'
   statusLabel?: string; // „W kolejce · 21:48”
   onCancel?: (id: string) => void; // queued
-  onSendAnyway?: (id: string) => void; // stale (also „Spróbuj ponownie” when failed)
+  onSendAnyway?: (id: string) => void; // stale
+  onRetry?: (id: string) => void; // failed – „Spróbuj ponownie”
   onDelete?: (id: string) => void; // stale | failed
   testID?: string;
 }

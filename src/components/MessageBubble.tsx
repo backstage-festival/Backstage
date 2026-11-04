@@ -156,6 +156,7 @@ function MessageBubbleBase({
   statusLabel,
   onCancel,
   onSendAnyway,
+  onRetry,
   onDelete,
   testID,
 }: MessageBubbleProps) {
@@ -262,11 +263,20 @@ function MessageBubbleBase({
 
       {effectiveStatus === "stale" || effectiveStatus === "failed" ? (
         <View style={styles.actions}>
-          {onSendAnyway ? (
+          {effectiveStatus === "stale" && onSendAnyway ? (
             <BubbleAction
-              label={effectiveStatus === "stale" ? strings.message.sendAnyway : strings.message.retry}
-              hint={effectiveStatus === "stale" ? strings.message.a11y.sendAnywayHint : strings.message.a11y.retryHint}
+              label={strings.message.sendAnyway}
+              hint={strings.message.a11y.sendAnywayHint}
               onPress={() => onSendAnyway(id)}
+              theme={theme}
+              level={level}
+            />
+          ) : null}
+          {effectiveStatus === "failed" && onRetry ? (
+            <BubbleAction
+              label={strings.message.retry}
+              hint={strings.message.a11y.retryHint}
+              onPress={() => onRetry(id)}
               theme={theme}
               level={level}
             />

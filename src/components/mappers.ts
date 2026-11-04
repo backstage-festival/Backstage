@@ -216,7 +216,10 @@ export function toDepartureRowProps(departure: Departure, walkSeconds: number, n
 /* Crew                                                                 */
 /* ------------------------------------------------------------------ */
 
-export type MessageBubbleData = Omit<MessageBubbleProps, "onCancel" | "onSendAnyway" | "onDelete" | "testID">;
+export type MessageBubbleData = Omit<
+  MessageBubbleProps,
+  "onCancel" | "onSendAnyway" | "onRetry" | "onDelete" | "testID"
+>;
 
 export interface MessageBubbleOptions {
   currentUserId: string;
