@@ -46,6 +46,16 @@ export const strings = {
     now: "Teraz",
   },
 
+  /** TEMP: labels used only by placeholder screens until the screen tasks. */
+  placeholder: {
+    prepare: "Przygotuj się",
+    downloadMap: "Pobierz mapę",
+    downloadMapDisabled: "Brak zasięgu – pobierzesz, gdy wróci sieć.",
+    variant200: "Tekst 200 %",
+    variantPatterns: "Wzory zamiast koloru",
+    variantHighContrast: "Wysoki kontrast",
+  },
+
   /** C01 · PerformanceCard + NowPass */
   plan: {
     stageCode: (stageNumber: number) => `S${stageNumber}`,
