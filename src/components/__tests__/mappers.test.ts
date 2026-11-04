@@ -3,6 +3,7 @@ import type { OutboxMessage } from "@/domain/entities/OutboxMessage";
 import type { Departure } from "@/domain/entities/Transit";
 
 import {
+  FALLBACK_STAGE_ID,
   findConflict,
   formatTime,
   overlaps,
@@ -16,6 +17,7 @@ import {
 
 const s1: Stage = { id: "s1", eventId: "e", name: "Główna", location: { latitude: 0, longitude: 0 } };
 const s2: Stage = { id: "s2", eventId: "e", name: "Doki", location: { latitude: 0, longitude: 0 } };
+const stageCodes = { s1: "s1", s2: "s2" } as const;
 
 function concert(id: string, stageId: string, startsAt: string, endsAt: string): Concert {
   return { id, eventId: "e", stageId, artist: id, startsAt, endsAt };
@@ -40,26 +42,43 @@ describe("toPerformanceCardProps", () => {
     expect(overlaps(wilga, hanna)).toBe(false); // ends exactly when the other starts
     expect(findConflict(hanna, [wilga, mewy])).toBe(mewy);
 
-    const props = toPerformanceCardProps(hanna, s2, { inPlan: true, conflictWith: { concert: mewy, stage: s1 }, now });
+    const props = toPerformanceCardProps(hanna, s2, { inPlan: true, stageCodes, conflictWith: { concert: mewy, stage: s1 }, now });
     expect(props.state).toBe("conflict");
     expect(props.statusLine).toBe("Kolizja · S1 od 22:15");
     expect(props).toMatchObject({ stage: "s2", stageName: "Doki", start: "21:30", end: "22:30" });
   });
 
   it("ignores a conflict when the concert is not in the plan", () => {
-    const props = toPerformanceCardProps(hanna, s2, { inPlan: false, conflictWith: { concert: mewy, stage: s1 }, now });
+    const props = toPerformanceCardProps(hanna, s2, { inPlan: false, stageCodes, conflictWith: { concert: mewy, stage: s1 }, now });
     expect(props.state).toBe("default");
     expect(props.statusLine).toBeUndefined();
   });
 
   it("marks finished concerts as played", () => {
     const later = new Date("2027-07-02T21:31:00+02:00");
-    expect(toPerformanceCardProps(wilga, s1, { inPlan: true, now: later }).state).toBe("played");
+    expect(toPerformanceCardProps(wilga, s1, { inPlan: true, stageCodes, now: later }).state).toBe("played");
   });
 
-  it("throws on stage ids outside s1–s3", () => {
-    const odd: Stage = { ...s1, id: "uuid-123" };
-    expect(() => toPerformanceCardProps(wilga, odd, { inPlan: false, now })).toThrow();
+  it("uses stage codes from options for non s1–s3 ids", () => {
+    const main: Stage = { ...s1, id: "uuid-main" };
+    const props = toPerformanceCardProps(wilga, main, { inPlan: false, stageCodes: { "uuid-main": "s3" }, now });
+    expect(props.stage).toBe("s3");
+  });
+
+  it("falls back safely for an unknown stage (also in the conflict line)", () => {
+    const unknown: Stage = { ...s2, id: "uuid-unknown", name: "Scena X" };
+    const render = () =>
+      toPerformanceCardProps(hanna, unknown, {
+        inPlan: true,
+        stageCodes,
+        conflictWith: { concert: mewy, stage: { ...s1, id: "uuid-other" } },
+        now,
+      });
+    expect(render).not.toThrow();
+    const props = render();
+    expect(props.stage).toBe(FALLBACK_STAGE_ID);
+    expect(props.stageName).toBe("Scena X");
+    expect(props.statusLine).toBe("Kolizja · S1 od 22:15");
   });
 });
 
@@ -70,6 +89,7 @@ describe("toNowPassProps", () => {
       inPlan: false,
       serial: "0702-S2-03",
       accentSuppressed: false,
+      stageCodes,
       now: new Date("2027-07-02T20:03:00+02:00"),
     });
     expect(props.range).toBe("19:40–20:40");

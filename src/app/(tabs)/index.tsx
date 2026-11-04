@@ -8,7 +8,14 @@ import { findConflict, toNowPassProps, toPerformanceCardProps } from "@/componen
 import { NowPass } from "@/components/NowPass";
 import { PerformanceCard } from "@/components/PerformanceCard";
 import type { Concert, Stage } from "@/domain/entities/Event";
-import { mockClock, mockConcerts, mockPassSerial, mockPlannedConcertIds, mockStages } from "@/mocks/mockData";
+import {
+  mockClock,
+  mockConcerts,
+  mockPassSerial,
+  mockPlannedConcertIds,
+  mockStageCodes,
+  mockStages,
+} from "@/mocks/mockData";
 import { strings } from "@/strings";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 import { spacing, textStyle } from "@/theme/theme";
@@ -63,6 +70,7 @@ export default function PlanScreen() {
       return [
         toPerformanceCardProps(concert, stage, {
           inPlan,
+          stageCodes: mockStageCodes,
           now,
           ...(other && otherStage ? { conflictWith: { concert: other, stage: otherStage } } : null),
         }),
@@ -82,6 +90,7 @@ export default function PlanScreen() {
               inPlan: planned.has(current.id),
               serial: mockPassSerial,
               accentSuppressed: false,
+              stageCodes: mockStageCodes,
               now,
             })}
             onPress={openConcert}

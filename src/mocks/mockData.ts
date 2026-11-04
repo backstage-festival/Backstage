@@ -8,6 +8,7 @@ import type { Concert, FestivalEvent, Stage } from "@/domain/entities/Event";
 import type { OutboxMessage } from "@/domain/entities/OutboxMessage";
 import type { Departure, Stop } from "@/domain/entities/Transit";
 import type { User } from "@/domain/entities/User";
+import type { StageId } from "@/types/components";
 
 const EVENT_ID = "stocznia-sound-2027";
 
@@ -36,6 +37,13 @@ export const mockStages: Stage[] = [
   { id: "s2", eventId: EVENT_ID, name: "Doki", location: { latitude: 54.3634, longitude: 18.6502 } },
   { id: "s3", eventId: EVENT_ID, name: "Namiot Elektro", location: { latitude: 54.3607, longitude: 18.6521 } },
 ];
+
+/** Stage.id → UI stage code (S1–S3) for the view mappers. */
+export const mockStageCodes: Readonly<Record<string, StageId>> = {
+  s1: "s1",
+  s2: "s2",
+  s3: "s3",
+};
 
 export const mockConcerts: Concert[] = [
   {

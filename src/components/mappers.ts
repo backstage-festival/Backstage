@@ -54,19 +54,21 @@ function wholeMinutes(diffMs: number): number {
 /* Plan                                                                 */
 /* ------------------------------------------------------------------ */
 
-export function isStageId(value: string): value is StageId {
-  return value === "s1" || value === "s2" || value === "s3";
+/** Stage.id → UI stage code (S1–S3). Provided by the caller (mocks / event store). */
+export type StageCodes = Readonly<Record<string, StageId>>;
+
+/**
+ * Safe fallback for a stage missing from stageCodes: never throw while rendering
+ * a list. S1 keeps the layout valid; the stage name is still shown and read.
+ */
+export const FALLBACK_STAGE_ID: StageId = "s1";
+
+export function stageIdOf(stage: Stage, stageCodes: StageCodes): StageId {
+  return stageCodes[stage.id] ?? FALLBACK_STAGE_ID;
 }
 
-export function toStageId(stage: Stage): StageId {
-  if (!isStageId(stage.id)) {
-    throw new Error(`Unknown stage id "${stage.id}" – expected s1 | s2 | s3.`);
-  }
-  return stage.id;
-}
-
-function stageNumberOf(stage: Stage): number {
-  return Number(toStageId(stage).slice(1));
+function stageNumberOf(stage: Stage, stageCodes: StageCodes): number {
+  return Number(stageIdOf(stage, stageCodes).slice(1));
 }
 
 /** Two concerts overlap when one starts before the other ends. */
@@ -83,6 +85,7 @@ export type PerformanceCardData = Omit<PerformanceCardProps, "onPress" | "onTogg
 
 export interface PerformanceCardOptions {
   inPlan: boolean;
+  stageCodes: StageCodes;
   conflictWith?: { concert: Concert; stage: Stage };
   now?: Date;
 }
@@ -90,12 +93,12 @@ export interface PerformanceCardOptions {
 export function toPerformanceCardProps(
   concert: Concert,
   stage: Stage,
-  { inPlan, conflictWith, now = new Date() }: PerformanceCardOptions,
+  { inPlan, stageCodes, conflictWith, now = new Date() }: PerformanceCardOptions,
 ): PerformanceCardData {
   const base = {
     id: concert.id,
     artist: concert.artist,
-    stage: toStageId(stage),
+    stage: stageIdOf(stage, stageCodes),
     stageName: stage.name,
     start: formatTime(concert.startsAt),
     end: formatTime(concert.endsAt),
@@ -107,7 +110,7 @@ export function toPerformanceCardProps(
       ...base,
       state: "conflict",
       statusLine: strings.plan.conflictLine(
-        stageNumberOf(conflictWith.stage),
+        stageNumberOf(conflictWith.stage, stageCodes),
         formatTime(conflictWith.concert.startsAt),
       ),
     };
@@ -120,7 +123,14 @@ export type NowPassData = Omit<NowPassProps, "onPress">;
 export function toNowPassProps(
   concert: Concert,
   stage: Stage,
-  options: { inPlan: boolean; serial: string; accentSuppressed: boolean; alsoNow?: string; now?: Date },
+  options: {
+    inPlan: boolean;
+    serial: string;
+    accentSuppressed: boolean;
+    stageCodes: StageCodes;
+    alsoNow?: string;
+    now?: Date;
+  },
 ): NowPassData {
   const now = (options.now ?? new Date()).getTime();
   const start = ms(concert.startsAt);
@@ -129,7 +139,7 @@ export function toNowPassProps(
   return {
     id: concert.id,
     artist: concert.artist,
-    stage: toStageId(stage),
+    stage: stageIdOf(stage, options.stageCodes),
     stageName: stage.name,
     range: strings.plan.timeRange(formatTime(concert.startsAt), formatTime(concert.endsAt)),
     remainingMin: wholeMinutes(end - now),
