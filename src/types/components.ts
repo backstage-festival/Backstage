@@ -13,48 +13,51 @@ export type TransitKind = "tram" | "bus" | "night" | "skm";
 export type StageId = "s1" | "s2" | "s3";
 
 /** The 41 interface icons (H04). */
-export type IconName =
-  | "plan"
-  | "map"
-  | "crew"
-  | "tent"
-  | "return"
-  | "tram"
-  | "add"
-  | "minus"
-  | "inPlan"
-  | "close"
-  | "warning"
-  | "signal"
-  | "noSignal"
-  | "sync"
-  | "clock"
-  | "pin"
-  | "arrowRight"
-  | "arrowLeft"
-  | "chevronRight"
-  | "chevronDown"
-  | "download"
-  | "share"
-  | "bell"
-  | "bellOff"
-  | "eye"
-  | "eyeOff"
-  | "weather"
-  | "locate"
-  | "north"
-  | "navArrow"
-  | "flag"
-  | "parking"
-  | "moon"
-  | "calendar"
-  | "stage"
-  | "toilet"
-  | "water"
-  | "medical"
-  | "gate"
-  | "food"
-  | "more";
+export const ICON_NAMES = [
+  "plan",
+  "map",
+  "crew",
+  "tent",
+  "return",
+  "tram",
+  "add",
+  "minus",
+  "inPlan",
+  "close",
+  "warning",
+  "signal",
+  "noSignal",
+  "sync",
+  "clock",
+  "pin",
+  "arrowRight",
+  "arrowLeft",
+  "chevronRight",
+  "chevronDown",
+  "download",
+  "share",
+  "bell",
+  "bellOff",
+  "eye",
+  "eyeOff",
+  "weather",
+  "locate",
+  "north",
+  "navArrow",
+  "flag",
+  "parking",
+  "moon",
+  "calendar",
+  "stage",
+  "toilet",
+  "water",
+  "medical",
+  "gate",
+  "food",
+  "more",
+] as const;
+
+export type IconName = (typeof ICON_NAMES)[number];
 
 /* ------------------------------------------------------------------ */
 /* C01 · PerformanceCard + NowPass                                      */
