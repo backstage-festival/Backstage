@@ -266,7 +266,7 @@ export const fonts = {
   monoBold: "IBMPlexMono-Bold",
 } as const;
 
-type FontFamily = (typeof fonts)[keyof typeof fonts];
+export type FontFamily = (typeof fonts)[keyof typeof fonts];
 
 /** [fontSize, lineHeight, letterSpacing?] */
 type Metric = readonly [number, number, number?];
@@ -306,7 +306,7 @@ export const textStyles = {
   bodySStrong: { fontFamily: fonts.archivoSemiBold, levels: [[14, 21], [20, 30], [26, 39]] },
 
   // IBM Plex Mono – dane
-  dataXXL: { fontFamily: fonts.monoBold, uppercase: true, levels: [[72, 72, -1.44], [84, 84, -1.68], [96, 96, -1.92]] },
+  dataXXL: { fontFamily: fonts.monoSemiBold, uppercase: true, levels: [[72, 72, -1.44], [84, 84, -1.68], [96, 96, -1.92]] },
   dataXL: { fontFamily: fonts.monoSemiBold, uppercase: true, levels: [[32, 36], [40, 44], [48, 52]] },
   crewCode: { fontFamily: fonts.monoBold, uppercase: true, levels: [[24, 28, 2.4], [30, 36, 1.5], [36, 44]] },
   dataL: { fontFamily: fonts.monoSemiBold, uppercase: true, levels: [[20, 24], [26, 32], [32, 40]] },
