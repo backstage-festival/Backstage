@@ -266,7 +266,7 @@ export const fonts = {
   monoBold: "IBMPlexMono-Bold",
 } as const;
 
-type FontFamily = (typeof fonts)[keyof typeof fonts];
+export type FontFamily = (typeof fonts)[keyof typeof fonts];
 
 /** [fontSize, lineHeight, letterSpacing?] */
 type Metric = readonly [number, number, number?];
