@@ -1,9 +1,10 @@
 import { DomainError } from "../../errors/DomainError";
 import {
-  RETRY_MAX_DELAY_MS,
   calculateNextAttemptAt,
   getRetryDelayMs,
   isDueForRetry,
+  MAX_AUTO_RETRY_ATTEMPTS,
+  RETRY_MAX_DELAY_MS,
 } from "../retryBackoff";
 
 describe("getRetryDelayMs", () => {
@@ -72,5 +73,9 @@ describe("calculateNextAttemptAt and isDueForRetry", () => {
     expect(() =>
       isDueForRetry({ status: "queued", nextAttemptAt: "garbage" }),
     ).toThrow(DomainError);
+  });
+  it("stops scheduling after the automatic retry limit", () => {
+    expect(calculateNextAttemptAt(MAX_AUTO_RETRY_ATTEMPTS - 1)).not.toBeNull();
+    expect(calculateNextAttemptAt(MAX_AUTO_RETRY_ATTEMPTS)).toBeNull();
   });
 });

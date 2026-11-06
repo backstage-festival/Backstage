@@ -4,6 +4,7 @@ import { DomainError } from "../errors/DomainError";
 
 export const RETRY_BASE_DELAY_MS = 5_000;
 export const RETRY_MAX_DELAY_MS = 5 * 60_000;
+export const MAX_AUTO_RETRY_ATTEMPTS = 8;
 
 export function getRetryDelayMs(attempts: number): number {
   if (!Number.isInteger(attempts) || attempts < 0) {
@@ -21,10 +22,11 @@ export function getRetryDelayMs(attempts: number): number {
 export function calculateNextAttemptAt(
   attempts: number,
   now: Date = new Date(),
-): IsoDateString {
-  return new Date(now.getTime() + getRetryDelayMs(attempts)).toISOString();
+): IsoDateString | null {
+  const delay = getRetryDelayMs(attempts);
+  if (attempts >= MAX_AUTO_RETRY_ATTEMPTS) return null;
+  return new Date(now.getTime() + delay).toISOString();
 }
-
 export function isDueForRetry(
   message: Pick<OutboxMessage, "status" | "nextAttemptAt">,
   now: Date = new Date(),
