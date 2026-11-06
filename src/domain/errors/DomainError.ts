@@ -8,7 +8,8 @@ export type DomainErrorCode =
   | "INVALID_COORDINATES"
   | "INVALID_RADIUS"
   | "INVALID_DATE"
-  | "INVALID_LEAVE_PARAMS";
+  | "INVALID_LEAVE_PARAMS"
+  | "INVALID_RETRY_ATTEMPTS";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
