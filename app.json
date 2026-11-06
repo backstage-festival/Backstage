@@ -33,7 +33,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Backstage to use your location to show it on the festival map."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
