@@ -6,7 +6,9 @@ export type DomainErrorCode =
   | "LOGIN_TAKEN"
   | "INVALID_TIME_RANGE"
   | "INVALID_COORDINATES"
-  | "INVALID_RADIUS";
+  | "INVALID_RADIUS"
+  | "INVALID_DATE"
+  | "INVALID_LEAVE_PARAMS";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
