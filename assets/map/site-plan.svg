@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="768" viewBox="0 0 1024 768">
+  <!--
+    Placeholder event site plan for the offline map's L.imageOverlay.
+    Swap this file (same dimensions/aspect ratio) for the real festival site
+    plan once Design hands it off — no code changes needed, see issue #20.
+  -->
+  <rect width="1024" height="768" fill="#eef1f3" />
+  <rect x="16" y="16" width="992" height="736" fill="none" stroke="#9aa5ad" stroke-width="4" stroke-dasharray="12 10" />
+  <text x="512" y="384" text-anchor="middle" font-family="sans-serif" font-size="40" fill="#5b6670">
+    Stocznia Sound 2027 — site plan placeholder
+  </text>
+</svg>

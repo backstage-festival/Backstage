@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Backstage map</title>
+    <link rel="stylesheet" href="./vendor/leaflet/leaflet.css" />
+    <style>
+      html,
+      body,
+      #map {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #eef1f3;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <!-- Bundled locally (no CDN) so the map renders in airplane mode. -->
+    <script src="./vendor/leaflet/leaflet.js"></script>
+    <script>
+      // Event site bounding box (covers the mock Stocznia Sound 2027 stages/POIs).
+      // Swap SITE_BOUNDS and SITE_PLAN_URL together when the real site plan arrives.
+      var SITE_BOUNDS = [
+        [54.3585, 18.644], // south-west
+        [54.3665, 18.6535], // north-east
+      ];
+      var SITE_PLAN_URL = "./site-plan.svg";
+
+      var map = L.map("map", {
+        attributionControl: false,
+        zoomControl: true,
+      });
+
+      L.imageOverlay(SITE_PLAN_URL, SITE_BOUNDS).addTo(map);
+      map.fitBounds(SITE_BOUNDS);
+      map.setMaxBounds(SITE_BOUNDS);
+      map.options.maxBoundsViscosity = 1;
+    </script>
+  </body>
+</html>
