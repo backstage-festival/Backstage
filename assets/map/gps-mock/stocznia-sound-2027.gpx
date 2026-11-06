@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Mock GPS route for "Stocznia Sound 2027" (Stocznia Gdańska), for demoing
+  the app at a desk without a phone physically on-site. See
+  assets/map/gps-mock/README.md for how to play this back on Android.
+
+  Path: main gate -> S1 (Główna) -> S2 (Doki) -> S3 (Namiot Elektro) ->
+  back towards the Plac Solidarności tram/bus stop, walking pace (~1.3 m/s).
+-->
+<gpx version="1.1" creator="Backstage" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Stocznia Sound 2027 - demo walk</name>
+    <trkseg>
+      <trkpt lat="54.3598" lon="18.6475"><time>2027-07-02T18:00:00Z</time></trkpt>
+      <trkpt lat="54.3604" lon="18.6478"><time>2027-07-02T18:00:30Z</time></trkpt>
+      <trkpt lat="54.3610" lon="18.6482"><time>2027-07-02T18:01:00Z</time></trkpt>
+      <trkpt lat="54.3615" lon="18.6486"><time>2027-07-02T18:01:30Z</time></trkpt>
+      <trkpt lat="54.3618" lon="18.6469"><time>2027-07-02T18:02:00Z</time></trkpt>
+      <trkpt lat="54.3622" lon="18.6480"><time>2027-07-02T18:02:30Z</time></trkpt>
+      <trkpt lat="54.3628" lon="18.6492"><time>2027-07-02T18:03:00Z</time></trkpt>
+      <trkpt lat="54.3634" lon="18.6502"><time>2027-07-02T18:03:30Z</time></trkpt>
+      <trkpt lat="54.3624" lon="18.6510"><time>2027-07-02T18:04:00Z</time></trkpt>
+      <trkpt lat="54.3615" lon="18.6518"><time>2027-07-02T18:04:30Z</time></trkpt>
+      <trkpt lat="54.3607" lon="18.6521"><time>2027-07-02T18:05:00Z</time></trkpt>
+      <trkpt lat="54.3600" lon="18.6505"><time>2027-07-02T18:06:00Z</time></trkpt>
+      <trkpt lat="54.3597" lon="18.6487"><time>2027-07-02T18:07:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
