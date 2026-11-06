@@ -24,8 +24,8 @@ describe("message staleness", () => {
     jest.useRealTimers();
   });
 
-  it("uses a 30 minute threshold", () => {
-    expect(MESSAGE_STALE_AFTER_MS).toBe(30 * 60_000);
+  it("uses a 20 minute threshold", () => {
+    expect(MESSAGE_STALE_AFTER_MS).toBe(20 * 60_000);
   });
 
   it("becomes stale exactly at the threshold", () => {

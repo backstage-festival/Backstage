@@ -2,7 +2,7 @@ import type { OutboxMessage } from "../entities/OutboxMessage";
 import { DomainError } from "../errors/DomainError";
 import { hasExhaustedRetries } from "./retryBackoff";
 
-export const MESSAGE_STALE_AFTER_MS = 30 * 60_000;
+export const MESSAGE_STALE_AFTER_MS = 20 * 60_000;
 
 export type MessageDeliveryState = "sent" | "failed" | "stale" | "queued";
 
