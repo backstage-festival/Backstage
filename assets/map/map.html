@@ -40,6 +40,113 @@
       map.fitBounds(SITE_BOUNDS);
       map.setMaxBounds(SITE_BOUNDS);
       map.options.maxBoundsViscosity = 1;
+
+      // --- RN <-> WebView bridge (issue #30) -----------------------------
+      // Marker colors are a placeholder until the real icon set lands (#44).
+      var TYPE_COLORS = {
+        s1: "#ef4444",
+        s2: "#ef4444",
+        s3: "#ef4444",
+        toilet: "#3b82f6",
+        water: "#06b6d4",
+        medical: "#dc2626",
+        gate: "#f59e0b",
+        food: "#f59e0b",
+        stop: "#8b5cf6",
+        saved: "#10b981",
+        me: "#111827",
+      };
+
+      var markersLayer = L.layerGroup().addTo(map);
+      var userMarker = null;
+
+      function postToRN(event) {
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(event));
+        }
+      }
+
+      function markerIcon(type, selected) {
+        var color = TYPE_COLORS[type] || "#374151";
+        var size = selected ? 22 : 16;
+        return L.divIcon({
+          className: "backstage-marker" + (selected ? " backstage-marker--selected" : ""),
+          html:
+            '<span style="display:block;width:' +
+            size +
+            "px;height:" +
+            size +
+            "px;border-radius:50%;background:" +
+            color +
+            ';border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);"></span>',
+          iconSize: [size, size],
+        });
+      }
+
+      function setMarkers(markers) {
+        markersLayer.clearLayers();
+        (markers || []).forEach(function (marker) {
+          var m = L.marker([marker.latitude, marker.longitude], {
+            icon: markerIcon(marker.type, !!marker.selected),
+          });
+          m.on("click", function () {
+            postToRN({ type: "markerPressed", markerId: marker.id });
+          });
+          markersLayer.addLayer(m);
+        });
+      }
+
+      function setUserPosition(position, headingDegrees) {
+        if (userMarker) {
+          map.removeLayer(userMarker);
+          userMarker = null;
+        }
+        if (!position) {
+          return;
+        }
+        var rotation = typeof headingDegrees === "number" ? headingDegrees : 0;
+        userMarker = L.marker([position.latitude, position.longitude], {
+          icon: L.divIcon({
+            className: "backstage-marker backstage-marker--me",
+            html:
+              '<span style="display:block;width:20px;height:20px;border-radius:50%;background:#111827;border:2px solid #fff;transform:rotate(' +
+              rotation +
+              'deg);"></span>',
+            iconSize: [20, 20],
+          }),
+          zIndexOffset: 1000,
+        }).addTo(map);
+      }
+
+      function centerOn(latitude, longitude, zoom) {
+        map.setView([latitude, longitude], typeof zoom === "number" ? zoom : map.getZoom());
+      }
+
+      window.__backstageHandleCommand = function (command) {
+        if (!command || typeof command.type !== "string") {
+          return;
+        }
+        if (command.type === "setMarkers") {
+          setMarkers(command.markers);
+        } else if (command.type === "setUserPosition") {
+          setUserPosition(command.position, command.headingDegrees);
+        } else if (command.type === "centerOn") {
+          centerOn(command.latitude, command.longitude, command.zoom);
+        }
+      };
+
+      map.on("moveend", function () {
+        var b = map.getBounds();
+        postToRN({
+          type: "boundsChanged",
+          bounds: {
+            minLatitude: b.getSouth(),
+            maxLatitude: b.getNorth(),
+            minLongitude: b.getWest(),
+            maxLongitude: b.getEast(),
+          },
+        });
+      });
     </script>
   </body>
 </html>
