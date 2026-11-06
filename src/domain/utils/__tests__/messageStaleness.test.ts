@@ -5,6 +5,7 @@ import {
   getMessageDeliveryState,
   isMessageStale,
 } from "../messageStaleness";
+import { MAX_AUTO_RETRY_ATTEMPTS } from "../retryBackoff";
 
 describe("message staleness", () => {
   const base = {
@@ -52,7 +53,9 @@ describe("message staleness", () => {
 
   it("returns failed when retries stopped, even if the message is old", () => {
     jest.advanceTimersByTime(MESSAGE_STALE_AFTER_MS);
-    expect(getMessageDeliveryState({ ...base, attempts: 8 })).toBe("failed");
+    expect(
+      getMessageDeliveryState({ ...base, attempts: MAX_AUTO_RETRY_ATTEMPTS }),
+    ).toBe("failed");
   });
 
   it("keeps queued while a retry is still scheduled", () => {

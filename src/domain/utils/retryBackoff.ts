@@ -6,6 +6,12 @@ export const RETRY_BASE_DELAY_MS = 5_000;
 export const RETRY_MAX_DELAY_MS = 5 * 60_000;
 export const MAX_AUTO_RETRY_ATTEMPTS = 8;
 
+export function hasExhaustedRetries(
+  message: Pick<OutboxMessage, "attempts">,
+): boolean {
+  return message.attempts >= MAX_AUTO_RETRY_ATTEMPTS;
+}
+
 export function getRetryDelayMs(attempts: number): number {
   if (!Number.isInteger(attempts) || attempts < 0) {
     throw new DomainError(
@@ -28,10 +34,11 @@ export function calculateNextAttemptAt(
   return new Date(now.getTime() + delay).toISOString();
 }
 export function isDueForRetry(
-  message: Pick<OutboxMessage, "status" | "nextAttemptAt">,
+  message: Pick<OutboxMessage, "status" | "attempts" | "nextAttemptAt">,
   now: Date = new Date(),
 ): boolean {
   if (message.status !== "queued") return false;
+  if (hasExhaustedRetries(message)) return false;
   if (message.nextAttemptAt === null) return true;
 
   const nextMs = Date.parse(message.nextAttemptAt);

@@ -1,5 +1,6 @@
 import type { OutboxMessage } from "../entities/OutboxMessage";
 import { DomainError } from "../errors/DomainError";
+import { hasExhaustedRetries } from "./retryBackoff";
 
 export const MESSAGE_STALE_AFTER_MS = 30 * 60_000;
 
@@ -37,6 +38,7 @@ export function getMessageDeliveryState(
   now: Date = new Date(),
 ): MessageDeliveryState {
   if (message.status === "sent") return "sent";
+  if (hasExhaustedRetries(message)) return "failed";
   if (message.attempts > 0 && message.nextAttemptAt === null) return "failed";
   if (isMessageStale(message, now)) return "stale";
   return "queued";

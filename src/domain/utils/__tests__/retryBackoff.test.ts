@@ -1,10 +1,10 @@
 import { DomainError } from "../../errors/DomainError";
 import {
+  MAX_AUTO_RETRY_ATTEMPTS,
+  RETRY_MAX_DELAY_MS,
   calculateNextAttemptAt,
   getRetryDelayMs,
   isDueForRetry,
-  MAX_AUTO_RETRY_ATTEMPTS,
-  RETRY_MAX_DELAY_MS,
 } from "../retryBackoff";
 
 describe("getRetryDelayMs", () => {
@@ -45,9 +45,15 @@ describe("calculateNextAttemptAt and isDueForRetry", () => {
     expect(calculateNextAttemptAt(3)).toBe("2027-07-02T22:00:20.000Z");
   });
 
+  it("stops scheduling after the automatic retry limit", () => {
+    expect(calculateNextAttemptAt(MAX_AUTO_RETRY_ATTEMPTS - 1)).not.toBeNull();
+    expect(calculateNextAttemptAt(MAX_AUTO_RETRY_ATTEMPTS)).toBeNull();
+  });
+
   it("becomes due only when nextAttemptAt is reached", () => {
     const message = {
       status: "queued" as const,
+      attempts: 2,
       nextAttemptAt: calculateNextAttemptAt(2),
     };
     expect(isDueForRetry(message)).toBe(false);
@@ -60,22 +66,38 @@ describe("calculateNextAttemptAt and isDueForRetry", () => {
   });
 
   it("is due immediately when there is no nextAttemptAt", () => {
-    expect(isDueForRetry({ status: "queued", nextAttemptAt: null })).toBe(true);
+    expect(
+      isDueForRetry({ status: "queued", attempts: 0, nextAttemptAt: null }),
+    ).toBe(true);
   });
 
   it("is never due once the message is sent", () => {
     expect(
-      isDueForRetry({ status: "sent", nextAttemptAt: "2027-07-02T21:00:00Z" }),
+      isDueForRetry({
+        status: "sent",
+        attempts: 1,
+        nextAttemptAt: "2027-07-02T21:00:00Z",
+      }),
     ).toBe(false);
   });
 
   it("throws for an invalid nextAttemptAt", () => {
     expect(() =>
-      isDueForRetry({ status: "queued", nextAttemptAt: "garbage" }),
+      isDueForRetry({
+        status: "queued",
+        attempts: 1,
+        nextAttemptAt: "garbage",
+      }),
     ).toThrow(DomainError);
   });
-  it("stops scheduling after the automatic retry limit", () => {
-    expect(calculateNextAttemptAt(MAX_AUTO_RETRY_ATTEMPTS - 1)).not.toBeNull();
-    expect(calculateNextAttemptAt(MAX_AUTO_RETRY_ATTEMPTS)).toBeNull();
+
+  it("is never due once automatic retries are exhausted", () => {
+    expect(
+      isDueForRetry({
+        status: "queued",
+        attempts: MAX_AUTO_RETRY_ATTEMPTS,
+        nextAttemptAt: null,
+      }),
+    ).toBe(false);
   });
 });
