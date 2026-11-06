@@ -9,7 +9,7 @@ export interface GeofenceResult {
   readonly distanceMeters: number;
 }
 
-function assertValidCoordinates(point: Coordinates): void {
+export function assertValidCoordinates(point: Coordinates): void {
   const { latitude, longitude } = point;
   const valid =
     Number.isFinite(latitude) &&

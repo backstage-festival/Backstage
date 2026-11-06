@@ -9,7 +9,8 @@ export type DomainErrorCode =
   | "INVALID_RADIUS"
   | "INVALID_DATE"
   | "INVALID_LEAVE_PARAMS"
-  | "INVALID_RETRY_ATTEMPTS";
+  | "INVALID_RETRY_ATTEMPTS"
+  | "INVALID_GPS_FIX";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
