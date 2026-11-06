@@ -4,7 +4,9 @@ export type DomainErrorCode =
   | "SCHEDULE_CONFLICT"
   | "INVALID_CREDENTIALS"
   | "LOGIN_TAKEN"
-  | "INVALID_TIME_RANGE";
+  | "INVALID_TIME_RANGE"
+  | "INVALID_COORDINATES"
+  | "INVALID_RADIUS";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
