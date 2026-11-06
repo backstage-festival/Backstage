@@ -3,13 +3,15 @@ import { StyleSheet, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 
 import type { BoundingBox, Coordinates } from "../../domain/entities/common";
-import { buildInjectedCommand, parseMapEvent, type MapMarker } from "./mapMessages";
+import { buildInjectedCommand, parseMapEvent, type MapMarker, type MapTheme } from "./mapMessages";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const MAP_HTML_SOURCE = require("../../../assets/map/map.html");
 
 export interface MapViewProps {
   markers: readonly MapMarker[];
+  /** Marker icon theme (H04): default, color-blind-safe patterns, or high contrast. */
+  theme?: MapTheme;
   userPosition?: Coordinates | null;
   userHeadingDegrees?: number;
   /** Imperatively re-center the map; bump a key or pass a new object to trigger it. */
@@ -21,6 +23,7 @@ export interface MapViewProps {
 
 export function MapView({
   markers,
+  theme = "domyslny",
   userPosition,
   userHeadingDegrees,
   centerOn,
@@ -29,6 +32,10 @@ export function MapView({
   testID,
 }: MapViewProps) {
   const webViewRef = useRef<WebView>(null);
+
+  useEffect(() => {
+    webViewRef.current?.injectJavaScript(buildInjectedCommand({ type: "setTheme", theme }));
+  }, [theme]);
 
   useEffect(() => {
     webViewRef.current?.injectJavaScript(
