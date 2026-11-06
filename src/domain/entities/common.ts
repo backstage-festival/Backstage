@@ -13,3 +13,8 @@ export interface BoundingBox {
   readonly minLongitude: number;
   readonly maxLongitude: number;
 }
+export interface GpsFix {
+  readonly location: Coordinates;
+  readonly timestamp: number;
+  readonly accuracyMeters: number | null;
+}
