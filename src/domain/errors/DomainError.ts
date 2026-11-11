@@ -13,7 +13,9 @@ export type DomainErrorCode =
   | "INVALID_RETRY_ATTEMPTS"
   | "INVALID_GPS_FIX"
   | "STAGE_NOT_FOUND"
-  | "CHECK_IN_CLOSED";
+  | "CHECK_IN_CLOSED"
+  | "INVALID_PLACE_LABEL"
+  | "INVALID_MESSAGE_BODY";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
