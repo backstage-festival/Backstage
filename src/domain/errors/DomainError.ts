@@ -11,7 +11,9 @@ export type DomainErrorCode =
   | "INVALID_DATE"
   | "INVALID_LEAVE_PARAMS"
   | "INVALID_RETRY_ATTEMPTS"
-  | "INVALID_GPS_FIX";
+  | "INVALID_GPS_FIX"
+  | "STAGE_NOT_FOUND"
+  | "CHECK_IN_CLOSED";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
