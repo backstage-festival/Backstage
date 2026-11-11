@@ -15,7 +15,8 @@ export type DomainErrorCode =
   | "STAGE_NOT_FOUND"
   | "CHECK_IN_CLOSED"
   | "INVALID_PLACE_LABEL"
-  | "INVALID_MESSAGE_BODY";
+  | "INVALID_MESSAGE_BODY"
+  | "MESSAGE_NOT_FOUND";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
