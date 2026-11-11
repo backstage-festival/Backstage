@@ -4,6 +4,7 @@ export type DomainErrorCode =
   | "SCHEDULE_CONFLICT"
   | "INVALID_CREDENTIALS"
   | "LOGIN_TAKEN"
+  | "CONCERT_NOT_FOUND"
   | "INVALID_TIME_RANGE"
   | "INVALID_COORDINATES"
   | "INVALID_RADIUS"
@@ -19,6 +20,6 @@ export class DomainError extends Error {
     super(message);
     this.name = "DomainError";
     this.code = code;
-    Object.setPrototypeOf(this, DomainError.prototype);
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
