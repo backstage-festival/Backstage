@@ -24,6 +24,7 @@ describe("QueueMessageUseCase", () => {
       getForCrew: jest.fn(),
       markSent: jest.fn(),
       markFailed: jest.fn(),
+      resetAttempts: jest.fn(),
     };
     ids = { generate: jest.fn().mockReturnValue("msg-1") };
 
