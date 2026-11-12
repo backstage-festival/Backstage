@@ -22,4 +22,10 @@ describe("calculateBearingInDegrees", () => {
     expect(bearing).toBeGreaterThanOrEqual(0);
     expect(bearing).toBeLessThan(360);
   });
+
+  it("does not return 360 for near-north westward bearings", () => {
+    const bearing = calculateBearingInDegrees(0, 0, 1, -0.005);
+    expect(bearing).toBeGreaterThanOrEqual(0);
+    expect(bearing).toBeLessThan(360);
+  });
 });
