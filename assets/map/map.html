@@ -255,15 +255,17 @@
       }
 
       function markerIcon(type, selected) {
-        var size = selected ? 32 : 26;
+        var touchSize = selected ? 64 : 48;
+        var visualSize = selected ? 30 : 24;
+        var pad = (touchSize - visualSize) / 2;
         return L.divIcon({
           className:
             "backstage-marker backstage-marker--" +
             type +
             (selected ? " backstage-marker--selected" : ""),
-          html: markerSvg(type, selected, currentTheme),
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
+          html: '<div style="padding:' + pad + 'px;">' + markerSvg(type, selected, currentTheme) + '</div>',
+          iconSize: [touchSize, touchSize],
+          iconAnchor: [touchSize / 2, touchSize / 2],
         });
       }
 
@@ -271,6 +273,7 @@
         var def = THEMES[currentTheme] || THEMES.domyslny;
         var color = def.colors.me;
         var html =
+          '<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;position:relative;">' +
           '<div style="width:26px;height:26px;position:relative;">' +
           '<div style="position:absolute;inset:0;transform:rotate(' +
           headingDegrees +
@@ -287,12 +290,13 @@
           color +
           '" stroke="#ffffff" stroke-width="2.5" />' +
           "</svg>" +
+          "</div>" +
           "</div>";
         return L.divIcon({
           className: "backstage-marker backstage-marker--me",
           html: html,
-          iconSize: [26, 26],
-          iconAnchor: [13, 13],
+          iconSize: [48, 48],
+          iconAnchor: [24, 24],
         });
       }
 
