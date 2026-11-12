@@ -30,6 +30,7 @@ export default function MapScreen() {
   const { theme } = useTheme();
   const mapTheme = toMapTheme(theme.name);
 
+  // TEMP: inject via src/di (#32)
   const locationService = useMemo(() => new ExpoLocationService(), []);
   const headingSmoother = useRef(new HeadingSmoother()).current;
 
@@ -56,9 +57,12 @@ export default function MapScreen() {
       unsubscribePosition = await locationService.watchPosition((position) => {
         setUserPosition(position);
       });
+      if (cancelled) { unsubscribePosition?.(); return; }
+
       unsubscribeHeading = await locationService.watchHeading((degrees) => {
         setHeadingDegrees(headingSmoother.update(degrees));
       });
+      if (cancelled) { unsubscribeHeading?.(); return; }
     })();
 
     return () => {
