@@ -19,6 +19,10 @@ describe("buildInjectedCommand", () => {
 });
 
 describe("parseMapEvent", () => {
+  it("parses a mapReady event", () => {
+    expect(parseMapEvent(JSON.stringify({ type: "mapReady" }))).toEqual({ type: "mapReady" });
+  });
+
   it("parses a markerPressed event", () => {
     expect(parseMapEvent(JSON.stringify({ type: "markerPressed", markerId: "p1" }))).toEqual({
       type: "markerPressed",

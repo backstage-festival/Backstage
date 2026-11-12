@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 
@@ -12,7 +12,6 @@ export interface MapViewProps {
   markers: readonly MapMarker[];
   userPosition?: Coordinates | null;
   userHeadingDegrees?: number;
-  /** Imperatively re-center the map; bump a key or pass a new object to trigger it. */
   centerOn?: { latitude: number; longitude: number; zoom?: number };
   onMarkerPress?: (markerId: string) => void;
   onBoundsChanged?: (bounds: BoundingBox) => void;
@@ -29,14 +28,17 @@ export function MapView({
   testID,
 }: MapViewProps) {
   const webViewRef = useRef<WebView>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    if (!isReady) return;
     webViewRef.current?.injectJavaScript(
       buildInjectedCommand({ type: "setMarkers", markers }),
     );
-  }, [markers]);
+  }, [markers, isReady]);
 
   useEffect(() => {
+    if (!isReady) return;
     webViewRef.current?.injectJavaScript(
       buildInjectedCommand({
         type: "setUserPosition",
@@ -44,28 +46,27 @@ export function MapView({
         headingDegrees: userHeadingDegrees,
       }),
     );
-  }, [userPosition, userHeadingDegrees]);
+  }, [userPosition, userHeadingDegrees, isReady]);
 
   useEffect(() => {
-    if (!centerOn) {
-      return;
-    }
+    if (!isReady || !centerOn) return;
     webViewRef.current?.injectJavaScript(
       buildInjectedCommand({ type: "centerOn", ...centerOn }),
     );
-  }, [centerOn]);
+  }, [centerOn, isReady]);
 
-  const handleMessage = (event: WebViewMessageEvent) => {
+  const handleMessage = useCallback((event: WebViewMessageEvent) => {
     const message = parseMapEvent(event.nativeEvent.data);
-    if (!message) {
-      return;
-    }
-    if (message.type === "markerPressed") {
+    if (!message) return;
+
+    if (message.type === "mapReady") {
+      setIsReady(true);
+    } else if (message.type === "markerPressed") {
       onMarkerPress?.(message.markerId);
     } else if (message.type === "boundsChanged") {
       onBoundsChanged?.(message.bounds);
     }
-  };
+  }, [onMarkerPress, onBoundsChanged]);
 
   return (
     <View style={styles.container} testID={testID}>
