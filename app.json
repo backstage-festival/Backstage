@@ -37,7 +37,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Backstage to use your location to show it on the festival map."
+          "locationWhenInUsePermission": "Backstage używa Twojej lokalizacji, żeby pokazać Cię na mapie festiwalu i sprawdzić, czy jesteś pod sceną."
         }
       ]
     ],

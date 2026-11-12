@@ -36,17 +36,21 @@ export class ExpoLocationService implements ILocationService {
       return () => {};
     }
 
-    const subscription = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, distanceInterval: 5 },
-      (location) => {
-        onChange({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-      },
-    );
+    try {
+      const subscription = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, distanceInterval: 5 },
+        (location) => {
+          onChange({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        },
+      );
 
-    return () => subscription.remove();
+      return () => subscription.remove();
+    } catch {
+      return () => {};
+    }
   }
 
   async watchHeading(onChange: (degrees: number) => void): Promise<Unsubscribe> {
@@ -55,10 +59,14 @@ export class ExpoLocationService implements ILocationService {
       return () => {};
     }
 
-    const subscription = await Location.watchHeadingAsync((heading) => {
-      onChange(heading.trueHeading >= 0 ? heading.trueHeading : heading.magHeading);
-    });
+    try {
+      const subscription = await Location.watchHeadingAsync((heading) => {
+        onChange(heading.trueHeading >= 0 ? heading.trueHeading : heading.magHeading);
+      });
 
-    return () => subscription.remove();
+      return () => subscription.remove();
+    } catch {
+      return () => {};
+    }
   }
 }
