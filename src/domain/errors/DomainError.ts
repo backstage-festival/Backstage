@@ -3,7 +3,8 @@ export type DomainErrorCode =
   | "TOO_FAR_FROM_STAGE"
   | "SCHEDULE_CONFLICT"
   | "INVALID_CREDENTIALS"
-  | "LOGIN_TAKEN";
+  | "LOGIN_TAKEN"
+  | "INVALID_ARGUMENT";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;

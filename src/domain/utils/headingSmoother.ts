@@ -1,3 +1,5 @@
+import { DomainError } from "../errors/DomainError";
+
 const normalizeDegrees = (degrees: number): number => ((degrees % 360) + 360) % 360;
 
 /** Shortest signed angular distance from `a` to `b`, in degrees, in range (-180, 180]. */
@@ -6,20 +8,20 @@ const shortestDelta = (a: number, b: number): number => {
   return diff === -180 ? 180 : diff;
 };
 
-/**
- * Exponential smoothing for compass heading, so the compass needle doesn't
- * jitter with raw sensor noise. Handles the 0°/360° wrap-around correctly.
- */
 export class HeadingSmoother {
   private smoothed: number | null = null;
 
   constructor(private readonly smoothingFactor: number = 0.2) {
-    if (smoothingFactor <= 0 || smoothingFactor > 1) {
-      throw new Error("smoothingFactor must be in (0, 1]");
+    if (!Number.isFinite(smoothingFactor) || smoothingFactor <= 0 || smoothingFactor > 1) {
+      throw new DomainError("INVALID_ARGUMENT", "smoothingFactor must be a finite number in (0, 1]");
     }
   }
 
   update(degrees: number): number {
+    if (!Number.isFinite(degrees)) {
+      return this.smoothed ?? 0;
+    }
+
     const normalized = normalizeDegrees(degrees);
     if (this.smoothed === null) {
       this.smoothed = normalized;

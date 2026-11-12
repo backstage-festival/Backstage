@@ -18,5 +18,5 @@ export function calculateBearingInDegrees(
     Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLon);
 
   const bearing = toDegrees(Math.atan2(y, x));
-  return Math.round((bearing + 360) % 360);
+  return Math.round(bearing + 360) % 360;
 }

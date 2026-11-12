@@ -40,4 +40,14 @@ describe("HeadingSmoother", () => {
     expect(() => new HeadingSmoother(0)).toThrow();
     expect(() => new HeadingSmoother(1.5)).toThrow();
   });
+
+  it("rejects NaN as smoothing factor", () => {
+    expect(() => new HeadingSmoother(NaN)).toThrow();
+  });
+
+  it("ignores NaN readings and returns last smoothed value", () => {
+    const smoother = new HeadingSmoother(0.5);
+    smoother.update(90);
+    expect(smoother.update(NaN)).toBe(90);
+  });
 });
