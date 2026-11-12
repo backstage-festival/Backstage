@@ -43,7 +43,7 @@ export type MapCommand =
 
 /** Wraps a command as a string safe to pass to WebView#injectJavaScript. */
 export function buildInjectedCommand(command: MapCommand): string {
-  const payload = JSON.stringify(command).replace(/\\u2028|\\u2029/g, "");
+  const payload = JSON.stringify(command);
   return `window.__backstageHandleCommand && window.__backstageHandleCommand(${payload}); true;`;
 }
 
@@ -52,6 +52,7 @@ export function buildInjectedCommand(command: MapCommand): string {
 /* ------------------------------------------------------------------ */
 
 export type MapEvent =
+  | { readonly type: "mapReady" }
   | { readonly type: "markerPressed"; readonly markerId: string }
   | { readonly type: "boundsChanged"; readonly bounds: BoundingBox };
 
@@ -89,6 +90,10 @@ export function parseMapEvent(raw: string): MapEvent | null {
   }
 
   const event = parsed as Record<string, unknown>;
+
+  if (event.type === "mapReady") {
+    return { type: "mapReady" as const };
+  }
 
   if (event.type === "markerPressed" && typeof event.markerId === "string") {
     return { type: "markerPressed", markerId: event.markerId };
