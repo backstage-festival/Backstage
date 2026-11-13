@@ -47,7 +47,7 @@ export class SqliteOutboxRepository implements IOutboxRepository {
 
     async getQueued(): Promise<readonly OutboxMessage[]> {
         const db = await getDb()
-        const rows = await db.getAllAsync<OutboxMessageRow>("SELECT id, crew_id, author_id, body, status, attempts, created_at, next_attempt_at, sent_at FROM outbox_messages WHERE status='queued' ORDER BY next_attempt_at ", [])
+        const rows = await db.getAllAsync<OutboxMessageRow>("SELECT id, crew_id, author_id, body, status, attempts, created_at, next_attempt_at, sent_at FROM outbox_messages WHERE status='queued' ORDER BY created_at", [])
         return rows.map(toOutboxMessage)
     }
 
@@ -62,8 +62,13 @@ export class SqliteOutboxRepository implements IOutboxRepository {
         await db.runAsync("UPDATE outbox_messages SET status = 'sent', sent_at = ?, next_attempt_at = NULL WHERE id = ?", [sentAt, id])
     }
 
-    async markFailed(id: string, attempts: number, nextAttemptAt: IsoDateString): Promise<void> {
+    async markFailed(id: string, attempts: number, nextAttemptAt: IsoDateString | null): Promise<void> {
         const db = await getDb()
         await db.runAsync("UPDATE outbox_messages SET attempts = ?, next_attempt_at = ? WHERE id = ?", [attempts, nextAttemptAt, id])
     }
+
+    async resetAttempts(id: string): Promise<void> {
+        const db = await getDb();
+        await db.runAsync("UPDATE outbox_messages SET attempts = 0, next_attempt_at = NULL WHERE id = ?", [id]);
+}
 }
