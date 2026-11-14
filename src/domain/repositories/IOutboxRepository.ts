@@ -9,6 +9,7 @@ export interface IOutboxRepository {
   markFailed(
     id: string,
     attempts: number,
-    nextAttemptAt: IsoDateString,
+    nextAttemptAt: IsoDateString | null,
   ): Promise<void>;
+  resetAttempts(id: string): Promise<void>;
 }

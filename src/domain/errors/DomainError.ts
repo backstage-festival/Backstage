@@ -4,13 +4,19 @@ export type DomainErrorCode =
   | "SCHEDULE_CONFLICT"
   | "INVALID_CREDENTIALS"
   | "LOGIN_TAKEN"
+  | "CONCERT_NOT_FOUND"
   | "INVALID_TIME_RANGE"
   | "INVALID_COORDINATES"
   | "INVALID_RADIUS"
   | "INVALID_DATE"
   | "INVALID_LEAVE_PARAMS"
   | "INVALID_RETRY_ATTEMPTS"
-  | "INVALID_GPS_FIX";
+  | "INVALID_GPS_FIX"
+  | "STAGE_NOT_FOUND"
+  | "CHECK_IN_CLOSED"
+  | "INVALID_PLACE_LABEL"
+  | "INVALID_MESSAGE_BODY"
+  | "MESSAGE_NOT_FOUND";
 
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
@@ -19,6 +25,6 @@ export class DomainError extends Error {
     super(message);
     this.name = "DomainError";
     this.code = code;
-    Object.setPrototypeOf(this, DomainError.prototype);
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
