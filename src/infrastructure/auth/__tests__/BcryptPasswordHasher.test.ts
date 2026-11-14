@@ -5,8 +5,8 @@ const pass = "festiwal123"
 describe("BcryptPasswordHasher", () => {
   const hasher = new BcryptPasswordHasher(4);
     it("hash nie jest tym samym co hasło", async() => {
-        const wynik = await hasher.hash("festiwal123")
-        expect(wynik).not.toBe("festiwal123")
+        const wynik = await hasher.hash("pass")
+        expect(wynik).not.toBe("pass")
     })
     it("Hasło się zgadza", async() => {
         const hash = await hasher.hash(pass)
