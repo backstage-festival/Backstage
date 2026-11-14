@@ -34,7 +34,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Backstage używa Twojej lokalizacji, żeby pokazać Cię na mapie festiwalu i sprawdzić, czy jesteś pod sceną."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
