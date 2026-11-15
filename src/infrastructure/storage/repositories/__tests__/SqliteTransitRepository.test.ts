@@ -23,11 +23,17 @@ describe("SqliteTransitRepository", () => {
     });
 
     expect(mockDb.getAllAsync).toHaveBeenCalledWith(
-      expect.stringContaining("latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ?"),
+      expect.stringContaining(
+        "latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ?",
+      ),
       [54.3, 54.4, 18.6, 18.7],
     );
     expect(stops).toEqual([
-      { id: 1, name: "Stocznia SKM", location: { latitude: 54.36, longitude: 18.64 } },
+      {
+        id: 1,
+        name: "Stocznia SKM",
+        location: { latitude: 54.36, longitude: 18.64 },
+      },
     ]);
   });
 });
