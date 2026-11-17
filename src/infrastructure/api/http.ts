@@ -20,29 +20,28 @@ export async function fetchJson(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  try{
+  try {
     let res: Response;
-    try{
-        res = await fetch(url, {signal: controller.signal});
-    }catch{
-        if(controller.signal.aborted){
-            throw new ApiError("TIMEOUT", "Minął czas na połączenie")
-        }
-        throw new ApiError("NETWORK", "Brak dostępu do internetu" )
+    try {
+      res = await fetch(url, { signal: controller.signal });
+    } catch {
+      if (controller.signal.aborted) {
+        throw new ApiError("TIMEOUT", "Minął czas na połączenie");
+      }
+      throw new ApiError("NETWORK", "Brak dostępu do internetu");
     }
 
-    if(!res.ok){
-        throw new ApiError("HTTP", `Serwer zwrocil blad ${res.status}`)
+    if (!res.ok) {
+      throw new ApiError("HTTP", `Serwer zwrocil blad ${res.status}`);
     }
 
-    try{
-        const data: unknown = await res.json()
-        return data
-    }catch{
-        throw new ApiError("PARSE", "Odpowiedz serwera nie jest poprawnym JSON-em" )
+    try {
+      const data: unknown = await res.json();
+      return data;
+    } catch {
+      throw new ApiError("PARSE", "Odpowiedz serwera nie jest poprawnym JSON-em");
     }
-
-  }finally{
-    clearTimeout(timer)
+  } finally {
+    clearTimeout(timer);
   }
 }
