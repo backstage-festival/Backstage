@@ -26,7 +26,7 @@ describe("fetchJson", () => {
     global.fetch = originalFetch;
   });
 
-  it("returns parsed JSON and clears the timeout timer", async () => {
+  it("zwraca dane z JSON-a i wyłącza budzik", async () => {
     fetchMock.mockResolvedValue(
       fakeResponse(true, 200, () => Promise.resolve({ departures: [] })),
     );
@@ -39,7 +39,7 @@ describe("fetchJson", () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
-  it("throws TIMEOUT when the server does not answer in time", async () => {
+  it("rzuca TIMEOUT, gdy serwer nie odpowie na czas", async () => {
     fetchMock.mockImplementation(
       (_input, init) =>
         new Promise<Response>((_resolve, reject) => {
@@ -58,14 +58,14 @@ describe("fetchJson", () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
-  it("throws NETWORK when there is no connection", async () => {
+  it("rzuca NETWORK, gdy nie ma internetu", async () => {
     fetchMock.mockRejectedValue(new TypeError("Network request failed"));
 
     await expect(fetchJson(URL)).rejects.toMatchObject({ code: "NETWORK" });
     expect(jest.getTimerCount()).toBe(0);
   });
 
-  it("throws HTTP with the status code when the server returns an error", async () => {
+  it("rzuca HTTP z numerem błędu, gdy serwer zwróci błąd", async () => {
     fetchMock.mockResolvedValue(
       fakeResponse(false, 500, () => Promise.resolve({})),
     );
@@ -77,7 +77,7 @@ describe("fetchJson", () => {
     expect((error as ApiError).message).toContain("500");
   });
 
-  it("throws PARSE when the body is not valid JSON", async () => {
+  it("rzuca PARSE, gdy odpowiedź nie jest poprawnym JSON-em", async () => {
     fetchMock.mockResolvedValue(
       fakeResponse(true, 200, () =>
         Promise.reject(new SyntaxError("Unexpected token <")),
@@ -90,13 +90,13 @@ describe("fetchJson", () => {
 });
 
 describe("ApiError", () => {
-  it("keeps code, message, name and works with instanceof", () => {
-    const error = new ApiError("TIMEOUT", "too slow");
+  it("ma etykietę, tekst i nazwę oraz działa z instanceof", () => {
+    const error = new ApiError("TIMEOUT", "za wolno");
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toBeInstanceOf(Error);
     expect(error.code).toBe("TIMEOUT");
-    expect(error.message).toBe("too slow");
+    expect(error.message).toBe("za wolno");
     expect(error.name).toBe("ApiError");
   });
 });
