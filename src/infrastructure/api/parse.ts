@@ -31,3 +31,19 @@ export function readArray(obj: Record<string, unknown>, key: string): unknown[] 
   }
   return null
 }
+
+const HAS_TIMEZONE = /(Z|[+-]\d{2}:?\d{2})$/;
+
+export function toIsoUtc(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  if (!HAS_TIMEZONE.test(value)) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toISOString();
+}
