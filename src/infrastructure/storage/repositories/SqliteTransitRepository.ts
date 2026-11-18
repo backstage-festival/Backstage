@@ -7,6 +7,7 @@ import type {
 import type { ITransitRepository } from "../../../domain/repositories/ITransitRepository";
 import { getDb } from "../database";
 import { runForEach, toCoordinates } from "./sqliteHelpers";
+import type { SQLiteDatabase } from "expo-sqlite";
 
 interface StopRow {
   id: number;
@@ -59,6 +60,66 @@ function toTransitAlert(row: TransitAlertRow): TransitAlert {
   };
 }
 
+export async function writeStops(
+  txn: SQLiteDatabase,
+  stops: readonly Stop[],
+): Promise<void> {
+  await runForEach(
+    txn,
+    "INSERT INTO stops (id, name, latitude, longitude) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, latitude = excluded.latitude, longitude = excluded.longitude",
+    stops,
+    (stop) => [
+      stop.id,
+      stop.name,
+      stop.location.latitude,
+      stop.location.longitude,
+    ],
+  );
+}
+
+export async function writeDepartures(
+  txn: SQLiteDatabase,
+  stopId: number,
+  departures: readonly Departure[],
+): Promise<void> {
+  await txn.runAsync("DELETE FROM departures WHERE stop_id = ?", [stopId]);
+
+  await runForEach(
+    txn,
+    "INSERT INTO departures (stop_id, route_name, headsign, departure_at, delay_seconds, fetched_at) VALUES (?,?,?,?,?,?) ON CONFLICT(stop_id, route_name, departure_at) DO UPDATE SET headsign = excluded.headsign, delay_seconds = excluded.delay_seconds, fetched_at = excluded.fetched_at",
+    departures,
+    (departure) => [
+      stopId,
+      departure.routeName,
+      departure.headsign,
+      departure.departureAt,
+      departure.delaySeconds,
+      departure.fetchedAt,
+    ],
+  );
+}
+
+export async function writeAlerts(
+  txn: SQLiteDatabase,
+  alerts: readonly TransitAlert[],
+): Promise<void> {
+  await txn.runAsync("DELETE FROM transit_alerts", []);
+
+  await runForEach(
+    txn,
+    "INSERT INTO transit_alerts (id, title, body, valid_from, valid_to, fetched_at) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title = excluded.title, body = excluded.body, valid_from = excluded.valid_from, valid_to = excluded.valid_to, fetched_at = excluded.fetched_at",
+    alerts,
+    (alert) => [
+      alert.id,
+      alert.title,
+      alert.body,
+      alert.validFrom,
+      alert.validTo,
+      alert.fetchedAt,
+    ],
+  );
+}
+
 export class SqliteTransitRepository implements ITransitRepository {
   async getStopsInBounds(bounds: BoundingBox): Promise<readonly Stop[]> {
     const db = await getDb();
@@ -77,17 +138,7 @@ export class SqliteTransitRepository implements ITransitRepository {
   async saveStops(stops: readonly Stop[]): Promise<void> {
     const db = await getDb();
     await db.withExclusiveTransactionAsync(async (txn) => {
-      await runForEach(
-        txn,
-        "INSERT INTO stops (id, name, latitude, longitude) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, latitude = excluded.latitude, longitude = excluded.longitude",
-        stops,
-        (stop) => [
-          stop.id,
-          stop.name,
-          stop.location.latitude,
-          stop.location.longitude,
-        ],
-      );
+      await writeStops(txn, stops);
     });
   }
 
@@ -106,21 +157,7 @@ export class SqliteTransitRepository implements ITransitRepository {
   ): Promise<void> {
     const db = await getDb();
     await db.withExclusiveTransactionAsync(async (txn) => {
-      await txn.runAsync("DELETE FROM departures WHERE stop_id = ?", [stopId]);
-
-      await runForEach(
-        txn,
-        "INSERT INTO departures (stop_id, route_name, headsign, departure_at, delay_seconds, fetched_at) VALUES (?,?,?,?,?,?) ON CONFLICT(stop_id, route_name, departure_at) DO UPDATE SET headsign = excluded.headsign, delay_seconds = excluded.delay_seconds, fetched_at = excluded.fetched_at",
-        departures,
-        (departure) => [
-          stopId,
-          departure.routeName,
-          departure.headsign,
-          departure.departureAt,
-          departure.delaySeconds,
-          departure.fetchedAt,
-        ],
-      );
+      await writeDepartures(txn, stopId, departures);
     });
   }
 
@@ -136,21 +173,7 @@ export class SqliteTransitRepository implements ITransitRepository {
   async saveAlerts(alerts: readonly TransitAlert[]): Promise<void> {
     const db = await getDb();
     await db.withExclusiveTransactionAsync(async (txn) => {
-      await txn.runAsync("DELETE FROM transit_alerts", []);
-
-      await runForEach(
-        txn,
-        "INSERT INTO transit_alerts (id, title, body, valid_from, valid_to, fetched_at) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title = excluded.title, body = excluded.body, valid_from = excluded.valid_from, valid_to = excluded.valid_to, fetched_at = excluded.fetched_at",
-        alerts,
-        (alert) => [
-          alert.id,
-          alert.title,
-          alert.body,
-          alert.validFrom,
-          alert.validTo,
-          alert.fetchedAt,
-        ],
-      );
+      await writeAlerts(txn, alerts);
     });
   }
 }
