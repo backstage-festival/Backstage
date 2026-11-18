@@ -10,6 +10,7 @@ import type {
 import type { IEventRepository } from "../../../domain/repositories/IEventRepository";
 import { getDb } from "../database";
 import { runForEach, toCoordinates } from "./sqliteHelpers";
+import type { SQLiteDatabase } from "expo-sqlite";
 
 interface EventRow {
   id: string;
@@ -85,6 +86,88 @@ function toPoi(row: PoiRow): Poi {
   };
 }
 
+export async function writeEventPackage(
+  txn: SQLiteDatabase,
+  eventPackage: EventPackage,
+): Promise<void> {
+  const { event, stages, concerts, pois } = eventPackage;
+  await txn.runAsync(
+    "INSERT INTO events (id, name, starts_at, ends_at, downloaded_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, starts_at = excluded.starts_at, ends_at = excluded.ends_at, downloaded_at = excluded.downloaded_at",
+    [
+      event.id,
+      event.name,
+      event.startsAt,
+      event.endsAt,
+      event.downloadedAt,
+    ],
+  );
+
+  await runForEach(
+    txn,
+    "INSERT INTO stages (id, event_id, name, latitude, longitude) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET event_id = excluded.event_id, name = excluded.name, latitude = excluded.latitude, longitude = excluded.longitude",
+    stages,
+    (stage) => [
+      stage.id,
+      stage.eventId,
+      stage.name,
+      stage.location.latitude,
+      stage.location.longitude,
+    ],
+  );
+
+  await runForEach(
+    txn,
+    "INSERT INTO concerts (id, event_id, stage_id, artist, starts_at, ends_at) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET event_id = excluded.event_id, stage_id = excluded.stage_id, artist = excluded.artist, starts_at = excluded.starts_at, ends_at = excluded.ends_at",
+    concerts,
+    (concert) => [
+      concert.id,
+      concert.eventId,
+      concert.stageId,
+      concert.artist,
+      concert.startsAt,
+      concert.endsAt,
+    ],
+  );
+
+  await runForEach(
+    txn,
+    "INSERT INTO pois (id, event_id, type, name, latitude, longitude) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET event_id = excluded.event_id, type = excluded.type, name = excluded.name, latitude = excluded.latitude, longitude = excluded.longitude",
+    pois,
+    (poi) => [
+      poi.id,
+      poi.eventId,
+      poi.type,
+      poi.name,
+      poi.location.latitude,
+      poi.location.longitude,
+    ],
+  );
+
+  // The exclusive transaction runs on a new connection without PRAGMA foreign_keys,
+  // so ON DELETE CASCADE does not fire: remove the plan and check-ins of dropped concerts by hand.
+  const concertIds = JSON.stringify(concerts.map((concert) => concert.id));
+  await txn.runAsync(
+    "DELETE FROM schedule_items WHERE concert_id IN (SELECT id FROM concerts WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?)))",
+    [event.id, concertIds],
+  );
+  await txn.runAsync(
+    "DELETE FROM check_ins WHERE concert_id IN (SELECT id FROM concerts WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?)))",
+    [event.id, concertIds],
+  );
+  await txn.runAsync(
+    "DELETE FROM concerts WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?))",
+    [event.id, concertIds],
+  );
+  await txn.runAsync(
+    "DELETE FROM stages WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?))",
+    [event.id, JSON.stringify(stages.map((stage) => stage.id))],
+  );
+  await txn.runAsync(
+    "DELETE FROM pois WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?))",
+    [event.id, JSON.stringify(pois.map((poi) => poi.id))],
+  );
+}
+
 export class SqliteEventRepository implements IEventRepository {
   async getCurrentEvent(): Promise<FestivalEvent | null> {
     const db = await getDb();
@@ -132,85 +215,10 @@ export class SqliteEventRepository implements IEventRepository {
   }
 
   async saveEventPackage(eventPackage: EventPackage): Promise<void> {
-    const { event, stages, concerts, pois } = eventPackage;
     const db = await getDb();
 
     await db.withExclusiveTransactionAsync(async (txn) => {
-      await txn.runAsync(
-        "INSERT INTO events (id, name, starts_at, ends_at, downloaded_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, starts_at = excluded.starts_at, ends_at = excluded.ends_at, downloaded_at = excluded.downloaded_at",
-        [
-          event.id,
-          event.name,
-          event.startsAt,
-          event.endsAt,
-          event.downloadedAt,
-        ],
-      );
-
-      await runForEach(
-        txn,
-        "INSERT INTO stages (id, event_id, name, latitude, longitude) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET event_id = excluded.event_id, name = excluded.name, latitude = excluded.latitude, longitude = excluded.longitude",
-        stages,
-        (stage) => [
-          stage.id,
-          stage.eventId,
-          stage.name,
-          stage.location.latitude,
-          stage.location.longitude,
-        ],
-      );
-
-      await runForEach(
-        txn,
-        "INSERT INTO concerts (id, event_id, stage_id, artist, starts_at, ends_at) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET event_id = excluded.event_id, stage_id = excluded.stage_id, artist = excluded.artist, starts_at = excluded.starts_at, ends_at = excluded.ends_at",
-        concerts,
-        (concert) => [
-          concert.id,
-          concert.eventId,
-          concert.stageId,
-          concert.artist,
-          concert.startsAt,
-          concert.endsAt,
-        ],
-      );
-
-      await runForEach(
-        txn,
-        "INSERT INTO pois (id, event_id, type, name, latitude, longitude) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET event_id = excluded.event_id, type = excluded.type, name = excluded.name, latitude = excluded.latitude, longitude = excluded.longitude",
-        pois,
-        (poi) => [
-          poi.id,
-          poi.eventId,
-          poi.type,
-          poi.name,
-          poi.location.latitude,
-          poi.location.longitude,
-        ],
-      );
-
-      // The exclusive transaction runs on a new connection without PRAGMA foreign_keys,
-      // so ON DELETE CASCADE does not fire: remove the plan and check-ins of dropped concerts by hand.
-      const concertIds = JSON.stringify(concerts.map((concert) => concert.id));
-      await txn.runAsync(
-        "DELETE FROM schedule_items WHERE concert_id IN (SELECT id FROM concerts WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?)))",
-        [event.id, concertIds],
-      );
-      await txn.runAsync(
-        "DELETE FROM check_ins WHERE concert_id IN (SELECT id FROM concerts WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?)))",
-        [event.id, concertIds],
-      );
-      await txn.runAsync(
-        "DELETE FROM concerts WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?))",
-        [event.id, concertIds],
-      );
-      await txn.runAsync(
-        "DELETE FROM stages WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?))",
-        [event.id, JSON.stringify(stages.map((stage) => stage.id))],
-      );
-      await txn.runAsync(
-        "DELETE FROM pois WHERE event_id = ? AND id NOT IN (SELECT value FROM json_each(?))",
-        [event.id, JSON.stringify(pois.map((poi) => poi.id))],
-      );
+      await writeEventPackage(txn, eventPackage);
     });
   }
 }
