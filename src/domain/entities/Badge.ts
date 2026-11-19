@@ -1,3 +1,5 @@
+import type { IsoDateString } from "./common";
+
 export type BadgeCode =
   | "prepared"
   | "night_owl"
@@ -9,4 +11,13 @@ export interface BadgeProgress {
   readonly progress: number;
   readonly goal: number;
   readonly earned: boolean;
+}
+
+export interface EarnedBadge {
+  readonly code: BadgeCode;
+  readonly earnedAt: IsoDateString;
+}
+
+export interface Badge extends BadgeProgress {
+  readonly earnedAt: IsoDateString | null;
 }
