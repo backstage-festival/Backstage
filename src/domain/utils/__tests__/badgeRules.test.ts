@@ -1,5 +1,10 @@
 import { DomainError } from "../../errors/DomainError";
-import { evaluateNightOwlBadge, evaluatePreparedBadge } from "../badgeRules";
+import {
+  evaluateAllDaysBadge,
+  evaluateNightOwlBadge,
+  evaluatePreparedBadge,
+  evaluateThreeStagesBadge,
+} from "../badgeRules";
 
 describe("evaluatePreparedBadge", () => {
   const startsAt = "2027-07-02T12:00:00Z";
@@ -142,5 +147,115 @@ describe("evaluateNightOwlBadge", () => {
     expect(() => evaluateNightOwlBadge([{ concertId: "x" }], [broken])).toThrow(
       expect.objectContaining({ code: "INVALID_TIME_RANGE" }),
     );
+  });
+});
+
+describe("evaluateAllDaysBadge", () => {
+  const day1 = { id: "d1", startsAt: "2027-07-02T18:00:00Z" };
+  const day1Late = { id: "d1-late", startsAt: "2027-07-02T21:15:00Z" };
+  const day2 = { id: "d2", startsAt: "2027-07-03T18:00:00Z" };
+  const day3 = { id: "d3", startsAt: "2027-07-04T18:00:00Z" };
+  const concerts = [day1, day1Late, day2, day3];
+
+  it("is earned with a check-in on every festival day", () => {
+    expect(
+      evaluateAllDaysBadge(
+        [{ concertId: "d1" }, { concertId: "d2" }, { concertId: "d3" }],
+        concerts,
+      ),
+    ).toEqual({ code: "all_three_days", progress: 3, goal: 3, earned: true });
+  });
+
+  it("counts each day once and shows progress for missing days", () => {
+    expect(
+      evaluateAllDaysBadge(
+        [{ concertId: "d1" }, { concertId: "d1-late" }, { concertId: "d2" }],
+        concerts,
+      ),
+    ).toEqual({ code: "all_three_days", progress: 2, goal: 3, earned: false });
+  });
+
+  it("assigns a concert after midnight to the previous festival day", () => {
+    const afterMidnight = { id: "late", startsAt: "2027-07-02T22:15:00Z" };
+    const nextEvening = { id: "next", startsAt: "2027-07-03T18:00:00Z" };
+    const twoDays = [day1, afterMidnight, nextEvening];
+
+    expect(
+      evaluateAllDaysBadge(
+        [{ concertId: "late" }, { concertId: "next" }],
+        twoDays,
+      ),
+    ).toEqual({ code: "all_three_days", progress: 2, goal: 2, earned: true });
+  });
+
+  it("starts a new festival day at 6:00 festival time", () => {
+    const beforeSix = { id: "x", startsAt: "2027-07-03T03:59:00Z" };
+    const atSix = { id: "y", startsAt: "2027-07-03T04:00:00Z" };
+
+    expect(evaluateAllDaysBadge([], [day1, beforeSix]).goal).toBe(1);
+    expect(evaluateAllDaysBadge([], [day1, atSix]).goal).toBe(2);
+  });
+
+  it("is not earned for an empty package", () => {
+    expect(evaluateAllDaysBadge([], [])).toEqual({
+      code: "all_three_days",
+      progress: 0,
+      goal: 1,
+      earned: false,
+    });
+  });
+
+  it("throws INVALID_DATE for a concert with a broken start", () => {
+    expect(() =>
+      evaluateAllDaysBadge([], [{ id: "z", startsAt: "garbage" }]),
+    ).toThrow(expect.objectContaining({ code: "INVALID_DATE" }));
+  });
+});
+
+describe("evaluateThreeStagesBadge", () => {
+  const concerts = [
+    { id: "c1", stageId: "main" },
+    { id: "c2", stageId: "main" },
+    { id: "c3", stageId: "docks" },
+    { id: "c4", stageId: "tent" },
+    { id: "c5", stageId: "extra" },
+  ];
+
+  it("is earned after check-ins on three different stages", () => {
+    expect(
+      evaluateThreeStagesBadge(
+        [{ concertId: "c1" }, { concertId: "c3" }, { concertId: "c4" }],
+        concerts,
+      ),
+    ).toEqual({ code: "three_stages", progress: 3, goal: 3, earned: true });
+  });
+
+  it("counts the same stage only once", () => {
+    expect(
+      evaluateThreeStagesBadge(
+        [{ concertId: "c1" }, { concertId: "c2" }],
+        concerts,
+      ),
+    ).toEqual({ code: "three_stages", progress: 1, goal: 3, earned: false });
+  });
+
+  it("caps progress at the goal", () => {
+    expect(
+      evaluateThreeStagesBadge(
+        [
+          { concertId: "c1" },
+          { concertId: "c3" },
+          { concertId: "c4" },
+          { concertId: "c5" },
+        ],
+        concerts,
+      ).progress,
+    ).toBe(3);
+  });
+
+  it("ignores check-ins for concerts missing from the package", () => {
+    expect(
+      evaluateThreeStagesBadge([{ concertId: "removed" }], concerts),
+    ).toEqual({ code: "three_stages", progress: 0, goal: 3, earned: false });
   });
 });

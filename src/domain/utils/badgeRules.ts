@@ -86,3 +86,51 @@ export function evaluateNightOwlBadge(
 
   return { code: "night_owl", progress: earned ? 1 : 0, goal: 1, earned };
 }
+
+export const THREE_STAGES_GOAL = 3;
+
+function festivalDayKey(ms: number): number {
+  return Math.floor(
+    (ms + FESTIVAL_OFFSET_MS - NIGHT_ENDS_AT_HOUR * HOUR_MS) / DAY_MS,
+  );
+}
+
+export function evaluateAllDaysBadge(
+  checkIns: readonly Pick<CheckIn, "concertId">[],
+  concerts: readonly Pick<Concert, "id" | "startsAt">[],
+): BadgeProgress {
+  const festivalDays = new Set(
+    concerts.map((concert) => festivalDayKey(parseDate(concert.startsAt))),
+  );
+  const visitedDays = new Set(
+    checkedInConcerts(checkIns, concerts).map((concert) =>
+      festivalDayKey(parseDate(concert.startsAt)),
+    ),
+  );
+  const goal = Math.max(festivalDays.size, 1);
+  const progress = visitedDays.size;
+
+  return {
+    code: "all_three_days",
+    progress,
+    goal,
+    earned: festivalDays.size > 0 && progress >= goal,
+  };
+}
+
+export function evaluateThreeStagesBadge(
+  checkIns: readonly Pick<CheckIn, "concertId">[],
+  concerts: readonly Pick<Concert, "id" | "stageId">[],
+): BadgeProgress {
+  const visitedStages = new Set(
+    checkedInConcerts(checkIns, concerts).map((concert) => concert.stageId),
+  );
+  const progress = Math.min(visitedStages.size, THREE_STAGES_GOAL);
+
+  return {
+    code: "three_stages",
+    progress,
+    goal: THREE_STAGES_GOAL,
+    earned: progress >= THREE_STAGES_GOAL,
+  };
+}
