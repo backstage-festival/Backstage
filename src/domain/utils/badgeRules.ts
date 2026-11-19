@@ -1,7 +1,17 @@
 import type { BadgeProgress } from "../entities/Badge";
 import type { IsoDateString } from "../entities/common";
-import type { FestivalEvent } from "../entities/Event";
+import type { Concert, FestivalEvent } from "../entities/Event";
+import type { CheckIn } from "../entities/Schedule";
 import { DomainError } from "../errors/DomainError";
+
+export const FESTIVAL_UTC_OFFSET_MINUTES = 120;
+export const NIGHT_ENDS_AT_HOUR = 6;
+
+const HOUR_MS = 60 * 60_000;
+const DAY_MS = 24 * HOUR_MS;
+const FESTIVAL_OFFSET_MS = FESTIVAL_UTC_OFFSET_MINUTES * 60_000;
+
+type BadgeConcert = Pick<Concert, "id" | "startsAt" | "endsAt">;
 
 function parseDate(value: IsoDateString): number {
   const parsed = Date.parse(value);
@@ -9,6 +19,53 @@ function parseDate(value: IsoDateString): number {
     throw new DomainError("INVALID_DATE", `Invalid date: ${value}.`);
   }
   return parsed;
+}
+
+function parseConcertRange(concert: BadgeConcert): {
+  start: number;
+  end: number;
+} {
+  const start = parseDate(concert.startsAt);
+  const end = parseDate(concert.endsAt);
+  if (end <= start) {
+    throw new DomainError(
+      "INVALID_TIME_RANGE",
+      `Invalid time range for concert ${concert.id}.`,
+    );
+  }
+  return { start, end };
+}
+
+function festivalMidnightBefore(ms: number): number {
+  const localMs = ms + FESTIVAL_OFFSET_MS;
+  return Math.floor(localMs / DAY_MS) * DAY_MS - FESTIVAL_OFFSET_MS;
+}
+
+function isLateNightConcert(concert: BadgeConcert): boolean {
+  const { start, end } = parseConcertRange(concert);
+
+  for (
+    let midnight = festivalMidnightBefore(start);
+    midnight < end;
+    midnight += DAY_MS
+  ) {
+    const nightEnd = midnight + NIGHT_ENDS_AT_HOUR * HOUR_MS;
+    if (start < nightEnd && end > midnight) return true;
+  }
+  return false;
+}
+
+function checkedInConcerts<T extends Pick<Concert, "id">>(
+  checkIns: readonly Pick<CheckIn, "concertId">[],
+  concerts: readonly T[],
+): T[] {
+  const byId = new Map(concerts.map((concert) => [concert.id, concert]));
+  const result: T[] = [];
+  for (const checkIn of checkIns) {
+    const concert = byId.get(checkIn.concertId);
+    if (concert !== undefined) result.push(concert);
+  }
+  return result;
 }
 
 export function evaluatePreparedBadge(
@@ -19,4 +76,13 @@ export function evaluatePreparedBadge(
     event.downloadedAt !== null && parseDate(event.downloadedAt) < startsAt;
 
   return { code: "prepared", progress: earned ? 1 : 0, goal: 1, earned };
+}
+
+export function evaluateNightOwlBadge(
+  checkIns: readonly Pick<CheckIn, "concertId">[],
+  concerts: readonly BadgeConcert[],
+): BadgeProgress {
+  const earned = checkedInConcerts(checkIns, concerts).some(isLateNightConcert);
+
+  return { code: "night_owl", progress: earned ? 1 : 0, goal: 1, earned };
 }
