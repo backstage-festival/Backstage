@@ -259,3 +259,26 @@ export interface SegmentedControlProps<T extends string> {
   look: "dayTabs" | "chips" | "stageToggles";
   onChange: (value: readonly T[]) => void;
 }
+
+/* ------------------------------------------------------------------ */
+/* C02 · LeaveNowAlert                                                  */
+/* ------------------------------------------------------------------ */
+
+export type LeaveNowAlertMode = "soundAndVibration" | "vibrationOnly" | "muted";
+export type LeaveNowAlertKind = "stage" | "transit";
+
+/** C02 props without `animate` – the pulse comes with #34. */
+export interface LeaveNowAlertProps {
+  kind: LeaveNowAlertKind;
+  eyebrow: string; // „Za 12 min · Scena Główna”
+  meta: string; // „Wilga i Fale · 20:15 · 450 m”
+  /** Read once when the alert appears (C02 „ogłoszenie”). */
+  announcement: string;
+  mode: LeaveNowAlertMode;
+  snoozeMinutes: 5 | 10 | 15;
+  canSnooze: boolean;
+  onGuide: () => void;
+  onSnooze: () => void;
+  onMute: () => void;
+  testID?: string;
+}

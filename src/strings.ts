@@ -195,4 +195,80 @@ export const strings = {
   screen: {
     loading: "Wczytuję dane z telefonu…",
   },
+
+  /** S04 · Plan screen */
+  planScreen: {
+    title: "Plan",
+    /** Mon–Sun short names, index = Date.getUTCDay(). */
+    weekdays: ["Nd", "Pn", "Wt", "Śr", "Czw", "Pt", "Sob"],
+    /** „Pt 2.07” */
+    day: (weekday: string, day: number, month: string) => `${weekday} ${day}.${month}`,
+    /** „Pt 2.07 · 20:03” */
+    eyebrow: (day: string, time: string) => `${day} · ${time}`,
+    now: (time: string) => `Teraz · ${time}`,
+    next: "Dalej",
+    played: (n: number) => `Zagrane · ${n}`,
+    alsoNow: (artist: string, stageNumber: number) => `${artist} · S${stageNumber}`,
+    dayGroup: "Dzień festiwalu",
+    scopeGroup: "Zakres",
+    scopeAll: "Wszystko",
+    scopeMine: "Mój plan",
+    stageGroup: "Sceny",
+    noStageConcerts: "Nic nie gra na tej scenie tego dnia",
+    prepare: "Przygotuj się",
+    badges: "Odznaki",
+    accessibility: "Dostępność",
+    login: "Logowanie",
+    empty: {
+      noPlanEyebrow: (day: string) => `Mój plan · ${day}`,
+      noPlanTitle: "Twój plan jest pusty",
+      noPlanBody: "Dodaj koncerty przyciskiem obok nazwy. Gdy coś będzie w planie, powiemy Ci, kiedy wyjść spod innej sceny.",
+      showAll: (n: number) => `Pokaż wszystkie koncerty · ${n}`,
+      noLineupEyebrow: "Brak danych",
+      noLineupTitle: "Brak line-upu w telefonie",
+      noLineupBody: "Line-up dla tego festiwalu nie został pobrany. Pobierz go, póki masz zasięg.",
+    },
+    note: {
+      conflict: (artist: string) => `Kolizja z: ${artist}`,
+      addAnyway: "Dodaj mimo to",
+      saveFailed: "Nie zapisano – spróbuj jeszcze raz",
+      removeFailed: "Nie usunięto – spróbuj jeszcze raz",
+      concertNotFound: "Nie ma tego koncertu w line-upie",
+      loadFailed: "Nie wczytano Twojego planu",
+      dismiss: "Zamknij komunikat",
+    },
+    a11y: {
+      stage: (stageNumber: number, stageName: string) => `Scena ${stageNumber}, ${stageName}`,
+      playedHint: "Pokazuje zagrane koncerty",
+      playedHideHint: "Chowa zagrane koncerty",
+      addAnywayHint: "Dodaje koncert mimo kolizji z innym z planu",
+    },
+  },
+
+  /** C02 · LeaveNowAlert */
+  leaveNow: {
+    /** „Za 12 min · Scena Główna” */
+    eyebrow: (minutes: number, stageName: string) => `Za ${minutes} min · Scena ${stageName}`,
+    title: "Wyjdź teraz",
+    /** „Wilga i Fale · 20:15 · 450 m” */
+    meta: (artist: string, time: string, distanceM: number) => `${artist} · ${time} · ${distanceM} m`,
+    guide: "Prowadź",
+    snooze: (minutes: number) => `Za ${minutes} min`,
+    snoozeLong: (minutes: number) => `Przypomnij za ${minutes} min`,
+    mute: "Wycisz",
+    vibrationOnly: "Tylko wibracja",
+    muted: "Alerty wyciszone · widać je w planie",
+    a11y: {
+      /** „Wyjdź teraz. Wilga i Fale na scenie Główna za 12 minut. 450 metrów stąd.” */
+      announce: (artist: string, stageName: string, minutes: number, distanceM: number) =>
+        `Wyjdź teraz. ${artist} na scenie ${stageName} za ${minutes} ${minutesWord(minutes)}. ` +
+        `${distanceM} ${plural(distanceM, "metr", "metry", "metrów")} stąd.`,
+      guideHint: "Otwiera prowadzenie do sceny",
+      snooze: (minutes: number) => `Przypomnij za ${minutes} ${minutesWord(minutes)}`,
+      snoozeHint: "Alert wróci później, jeśli zdążysz",
+      snoozeDisabled: "Za mało czasu, żeby odłożyć alert",
+      mute: "Wycisz alerty wyjścia",
+      muteHint: "Alerty będą widoczne tylko w planie, bez dźwięku i wibracji",
+    },
+  },
 } as const;
