@@ -181,6 +181,8 @@ export interface IconButtonProps {
   accessibilityLabel: string; // required
   accessibilityHint?: string;
   selected?: boolean;
+  /** Accent fill on a dark surface (Composer send, S06). */
+  emphasis?: "accent";
   surface: ButtonSurface;
   disabled: boolean;
   onPress: () => void;

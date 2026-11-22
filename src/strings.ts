@@ -271,4 +271,40 @@ export const strings = {
       muteHint: "Alerty będą widoczne tylko w planie, bez dźwięku i wibracji",
     },
   },
+
+  /** S06 · Crew screen */
+  crewScreen: {
+    title: "Ekipa",
+    codeLabel: "Kod ekipy",
+    /** „STK7Q4M” → „STK·7Q4M” */
+    code: (code: string) => `${code.slice(0, 3)}·${code.slice(3)}`,
+    members: (names: readonly string[]) => [...names, "Ty"].join(" · "),
+    onlyYou: "Na razie tylko Ty",
+    /** TEMP: no display name yet (#71 Q10) */
+    fallbackName: "Ekipa",
+    queueTitle: (n: number) => `${n} ${plural(n, "czeka", "czekają", "czeka")} na wysyłkę`,
+    queueBody: (n: number) => (n === 1 ? "Wyśle się sama przy zasięgu" : "Wyślą się same przy zasięgu"),
+    placeholder: "Napisz do ekipy…",
+    empty: {
+      title: "Brak wiadomości",
+      body: (code: string) =>
+        `Wyślij znajomym kod ${code}. Kto go wpisze, dołączy do czatu. Wiadomości napisane bez zasięgu poczekają w kolejce i wyślą się same.`,
+      share: "Udostępnij kod",
+      errorEyebrow: "Nie wczytano wiadomości",
+      errorTitle: "Nie udało się otworzyć czatu",
+      errorBody: "Wiadomości nie zostały wczytane z telefonu. Spróbuj jeszcze raz.",
+      retry: "Spróbuj ponownie",
+    },
+    a11y: {
+      /** „Kod ekipy: S T K 7 Q 4 M” */
+      code: (code: string) => `Kod ekipy: ${code.split("").join(" ")}`,
+      share: "Udostępnij kod ekipy",
+      queue: (n: number) =>
+        `${n} ${plural(n, "czeka", "czekają", "czeka")} na wysyłkę. ${n === 1 ? "Wyśle się sama" : "Wyślą się same"} przy zasięgu.`,
+      input: "Wiadomość do ekipy",
+      send: "Wyślij",
+      sendHint: "Bez zasięgu wiadomość trafi do kolejki",
+      sendDisabled: "Napisz wiadomość, żeby ją wysłać",
+    },
+  },
 } as const;

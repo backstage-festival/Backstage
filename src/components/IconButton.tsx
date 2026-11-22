@@ -10,7 +10,13 @@ import { usePressScale } from "./motion";
 /** C09: secondary border on laminate / accent zone is 2 dp of ink. */
 const INK_BORDER_WIDTH = 2;
 
-function iconButtonColors(theme: Theme, surface: ButtonSurface, selected: boolean, disabled: boolean) {
+function iconButtonColors(
+  theme: Theme,
+  surface: ButtonSurface,
+  selected: boolean,
+  disabled: boolean,
+  emphasis: IconButtonProps["emphasis"],
+) {
   const c = theme.colors;
   const ink = c.textOnLaminate;
   const transparent = "transparent";
@@ -22,6 +28,15 @@ function iconButtonColors(theme: Theme, surface: ButtonSurface, selected: boolea
       foreground: c.textDisabled,
       border: c.divider,
       borderWidth: theme.borderWidth.control,
+    };
+  }
+  if (emphasis === "accent") {
+    return {
+      background: c.accent,
+      backgroundPressed: c.accentPressed,
+      foreground: c.textOnAccent,
+      border: c.accent,
+      borderWidth: 0,
     };
   }
   if (surface === "dark") {
@@ -46,13 +61,14 @@ export function IconButton({
   accessibilityLabel,
   accessibilityHint,
   selected,
+  emphasis,
   surface,
   disabled,
   onPress,
 }: IconButtonProps) {
   const { theme } = useTheme();
   const { scale, onPressIn, onPressOut } = usePressScale();
-  const colors = iconButtonColors(theme, surface, selected === true, disabled);
+  const colors = iconButtonColors(theme, surface, selected === true, disabled, emphasis);
 
   return (
     <Pressable

@@ -256,5 +256,12 @@ export const mockMessages: OutboxMessage[] = [
   },
 ];
 
+/** Crew code and members (S06) – not in the domain yet. */
+export const mockCrew = {
+  id: CREW_ID,
+  code: "STK7Q4M",
+  memberIds: ["u-kuba", "u-ola"],
+} as const;
+
 /** Messages the gateway is pushing right now (mock of useConnectionStore). */
 export const mockSendingIds: ReadonlySet<string> = new Set(["m-5"]);
