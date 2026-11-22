@@ -121,6 +121,39 @@ describe("resetOnLogout", () => {
     expect(scheduleStore.getState().items).toHaveLength(1);
   });
 
+  it("resets when another user signs in without logging out (A → B)", async () => {
+    const { login, authStore, scheduleStore, messageStore, checkInStore } =
+      await setup();
+    login.mockResolvedValueOnce(user("u-2"));
+
+    await authStore.getState().login("u-2", "secret");
+
+    expect(authStore.getState().user?.id).toBe("u-2");
+    expect(scheduleStore.getState().items).toEqual([]);
+    expect(messageStore.getState().messages).toEqual([]);
+    expect(checkInStore.getState().checkedInConcertIds.size).toBe(0);
+  });
+
+  it("does not reset when the same user signs in again (A → A)", async () => {
+    const { login, authStore, scheduleStore } = await setup();
+    login.mockResolvedValueOnce(user("u-1"));
+
+    await authStore.getState().login("u-1", "secret");
+
+    expect(scheduleStore.getState().items).toHaveLength(1);
+  });
+
+  it("does not reset on the first sign-in (null → A)", async () => {
+    const { login, authStore, scheduleStore } = await setup();
+    authStore.getState().logout();
+    await scheduleStore.getState().load("u-1", "event-1");
+    login.mockResolvedValueOnce(user("u-1"));
+
+    await authStore.getState().login("u-1", "secret");
+
+    expect(scheduleStore.getState().items).toHaveLength(1);
+  });
+
   it("stops resetting after unsubscribe", async () => {
     const { authStore, scheduleStore, unsubscribe } = await setup();
 
