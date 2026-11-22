@@ -5,7 +5,7 @@ import { DomainError } from "@/domain/errors/DomainError";
 import { TooFarFromStageError } from "@/domain/errors/TooFarFromStageError";
 import type { CheckInUseCase } from "@/use-cases/CheckInUseCase";
 
-import { type LoadStatus, withId, withoutId } from "./optimistic";
+import { type LoadStatus, unionIds, withId, withoutId } from "./optimistic";
 
 export interface CheckInStoreDeps {
   readonly checkIn: Pick<CheckInUseCase, "execute">;
@@ -69,19 +69,27 @@ export function createCheckInStore(deps: CheckInStoreDeps) {
   let loadToken = 0;
   // Bumped by reset(): write actions started before it must not touch the new state.
   let epoch = 0;
+  // Ids written (saved or rolled back) since the current load started –
+  // their local state is newer than whatever that load returns.
+  let settledIds = new Set<string>();
 
   return createStore<CheckInState>()((set, get) => ({
     ...initialCheckInData(),
 
     async load(userId) {
       const token = ++loadToken;
+      settledIds = new Set<string>();
       set({ loadStatus: "loading" });
       try {
         const checkIns = await deps.loadCheckIns(userId);
         if (token !== loadToken) return false;
         const ids = new Set(checkIns.map((checkIn) => checkIn.concertId));
-        // Keep optimistic check-ins that are still being saved.
-        for (const id of get().pendingIds) ids.add(id);
+        // Local state wins for writes in flight or settled since this load started.
+        const { pendingIds, checkedInConcertIds } = get();
+        for (const id of unionIds(pendingIds, settledIds)) {
+          if (checkedInConcertIds.has(id)) ids.add(id);
+          else ids.delete(id);
+        }
         set({ checkedInConcertIds: ids, loadStatus: "ready" });
         return true;
       } catch {
@@ -107,12 +115,14 @@ export function createCheckInStore(deps: CheckInStoreDeps) {
         // Both "checked_in" and "already_checked_in" keep the mark.
         await deps.checkIn.execute({ userId, eventId, concertId });
         if (startedIn !== epoch) return true;
+        settledIds.add(concertId);
         set((state) => ({
           pendingIds: withoutId(state.pendingIds, concertId),
         }));
         return true;
       } catch (error) {
         if (startedIn !== epoch) return false;
+        settledIds.add(concertId);
         // Validation errors (distance, window, GPS) also roll back.
         set((state) => ({
           checkedInConcertIds: withoutId(state.checkedInConcertIds, concertId),
@@ -130,6 +140,7 @@ export function createCheckInStore(deps: CheckInStoreDeps) {
     reset() {
       loadToken += 1;
       epoch += 1;
+      settledIds = new Set<string>();
       set(initialCheckInData());
     },
   }));

@@ -161,6 +161,46 @@ describe("checkInStore", () => {
     expect([...store.getState().checkedInConcertIds]).toEqual(["c2"]);
   });
 
+  describe("writes that settle while load() is in flight", () => {
+    const startLoad = (store: ReturnType<typeof createCheckInStore>) => {
+      const pending = deferred<readonly CheckIn[]>();
+      deps.loadCheckIns.mockReturnValueOnce(pending.promise);
+      const loading = store.getState().load("user-1");
+      return { pending, loading };
+    };
+
+    it("keeps a check-in saved before the stale list arrives", async () => {
+      const store = create();
+      const { pending, loading } = startLoad(store);
+      deps.checkIn.execute.mockResolvedValueOnce(checkedIn("c1"));
+
+      await expect(
+        store.getState().checkIn("user-1", "event-1", "c1"),
+      ).resolves.toBe(true);
+      pending.resolve([checkIn("c2")]);
+      await loading;
+
+      expect([...store.getState().checkedInConcertIds].sort()).toEqual([
+        "c1",
+        "c2",
+      ]);
+    });
+
+    it("keeps a rolled-back check-in unmarked", async () => {
+      const store = create();
+      const { pending, loading } = startLoad(store);
+      deps.checkIn.execute.mockRejectedValueOnce(new TooFarFromStageError(300));
+
+      await expect(
+        store.getState().checkIn("user-1", "event-1", "c1"),
+      ).resolves.toBe(false);
+      pending.resolve([checkIn("c2")]);
+      await loading;
+
+      expect([...store.getState().checkedInConcertIds]).toEqual(["c2"]);
+    });
+  });
+
   it("reset clears check-ins and drops a load() that resolves later", async () => {
     deps.loadCheckIns.mockResolvedValueOnce([checkIn("c1")]);
     const store = create();

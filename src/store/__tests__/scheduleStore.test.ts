@@ -319,6 +319,90 @@ describe("scheduleStore", () => {
     });
   });
 
+  describe("writes that settle while load() is in flight", () => {
+    const startLoad = (store: ReturnType<typeof createScheduleStore>) => {
+      const pending = deferred<readonly ScheduleItem[]>();
+      deps.loadSchedule.mockReturnValueOnce(pending.promise);
+      const loading = store.getState().load("user-1", "event-1");
+      return { pending, loading };
+    };
+
+    it("keeps an add that was saved before the stale list arrives", async () => {
+      const store = await setup();
+      const { pending, loading } = startLoad(store);
+      deps.addToSchedule.execute.mockResolvedValueOnce({
+        status: "added",
+        item: item("c1"),
+        conflicts: [],
+      });
+
+      await expect(store.getState().add("c1")).resolves.toBe(true);
+      pending.resolve([item("c2")]);
+      await loading;
+
+      expect([...store.getState().plannedIds].sort()).toEqual(["c1", "c2"]);
+      expect(store.getState().items.map((i) => i.concertId).sort()).toEqual([
+        "c1",
+        "c2",
+      ]);
+    });
+
+    it("does not bring back a concert removed before the stale list arrives", async () => {
+      const store = await setup([item("c1"), item("c2")]);
+      const { pending, loading } = startLoad(store);
+      deps.removeFromSchedule.mockResolvedValueOnce(undefined);
+
+      await expect(store.getState().remove("c1")).resolves.toBe(true);
+      pending.resolve([item("c1"), item("c2")]);
+      await loading;
+
+      expect([...store.getState().plannedIds]).toEqual(["c2"]);
+      expect(store.getState().items).toEqual([item("c2")]);
+    });
+
+    it("keeps a rolled-back add out of the plan", async () => {
+      const store = await setup();
+      const { pending, loading } = startLoad(store);
+      deps.addToSchedule.execute.mockRejectedValueOnce(new Error("offline"));
+
+      await expect(store.getState().add("c1")).resolves.toBe(false);
+      pending.resolve([]);
+      await loading;
+
+      expect(selectIsPlanned("c1")(store.getState())).toBe(false);
+      expect(store.getState().items).toEqual([]);
+    });
+
+    it("keeps a rolled-back remove exactly once", async () => {
+      const store = await setup([item("c1")]);
+      const { pending, loading } = startLoad(store);
+      deps.removeFromSchedule.mockRejectedValueOnce(new Error("db"));
+
+      await expect(store.getState().remove("c1")).resolves.toBe(false);
+      pending.resolve([item("c1")]);
+      await loading;
+
+      expect(store.getState().items).toEqual([item("c1")]);
+      expect(selectIsPlanned("c1")(store.getState())).toBe(true);
+    });
+
+    it("lets the next load() take over once it starts after the write", async () => {
+      const store = await setup();
+      deps.addToSchedule.execute.mockResolvedValueOnce({
+        status: "added",
+        item: item("c1"),
+        conflicts: [],
+      });
+      await store.getState().add("c1");
+
+      // c1 was removed elsewhere; a load started after the write wins.
+      deps.loadSchedule.mockResolvedValueOnce([]);
+      await store.getState().load("user-1", "event-1");
+
+      expect(selectIsPlanned("c1")(store.getState())).toBe(false);
+    });
+  });
+
   describe("reset", () => {
     it("restores the initial state", async () => {
       const store = await setup([item("c1")]);

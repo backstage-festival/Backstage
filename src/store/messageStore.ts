@@ -13,6 +13,7 @@ import type { SyncOutboxUseCase } from "@/use-cases/SyncOutboxUseCase";
 import {
   type LoadStatus,
   mergePending,
+  unionIds,
   withId,
   withoutId,
 } from "./optimistic";
@@ -88,18 +89,27 @@ export function createMessageStore(deps: MessageStoreDeps) {
   let loadToken = 0;
   // Bumped by reset(): actions and syncs started before it must not touch the new state.
   let epoch = 0;
+  // Ids written (saved or rolled back) since the current load started –
+  // their local state is newer than whatever that load returns.
+  let settledIds = new Set<string>();
   let inFlightSync: Promise<void> | null = null;
 
   return createStore<MessageState>()((set, get) => {
-    /** Loads the crew list and keeps local optimistic messages that are still pending. */
+    /** Loads the crew list; local state wins for messages written meanwhile. */
     const reload = async (crewId: string, token: number): Promise<boolean> => {
+      settledIds = new Set<string>();
       const loaded = await deps.loadMessages(crewId);
       if (token !== loadToken || get().crewId !== crewId) return false;
       const { messages, pendingIds } = get();
       set({
-        messages: [...mergePending(loaded, messages, pendingIds, idOf)].sort(
-          byCreatedAt,
-        ),
+        messages: [
+          ...mergePending(
+            loaded,
+            messages,
+            unionIds(pendingIds, settledIds),
+            idOf,
+          ),
+        ].sort(byCreatedAt),
         loadStatus: "ready",
       });
       return true;
@@ -188,6 +198,8 @@ export function createMessageStore(deps: MessageStoreDeps) {
             body,
           });
           if (startedIn !== epoch) return true;
+          // The temporary id is gone; protect the real one from a stale load.
+          settledIds.add(queued.id);
           set((state) => ({
             messages: state.messages.map((message) =>
               message.id === tempId ? queued : message,
@@ -230,6 +242,7 @@ export function createMessageStore(deps: MessageStoreDeps) {
         try {
           await deps.retryMessage.execute(messageId);
           if (startedIn !== epoch) return true;
+          settledIds.add(messageId);
           set((state) => ({
             pendingIds: withoutId(state.pendingIds, messageId),
           }));
@@ -237,6 +250,7 @@ export function createMessageStore(deps: MessageStoreDeps) {
           return true;
         } catch (error) {
           if (startedIn !== epoch) return false;
+          settledIds.add(messageId);
           // Restore only the fields this action changed.
           set((state) => ({
             messages: state.messages.map((message) =>
@@ -272,6 +286,7 @@ export function createMessageStore(deps: MessageStoreDeps) {
       reset() {
         loadToken += 1;
         epoch += 1;
+        settledIds = new Set<string>();
         // The old sync may still finish, but it is no longer shared with new callers.
         inFlightSync = null;
         set(initialMessageData());

@@ -368,6 +368,73 @@ describe("messageStore", () => {
     });
   });
 
+  describe("writes that settle while load() is in flight", () => {
+    const startLoad = (store: ReturnType<typeof createMessageStore>) => {
+      const pending = deferred<readonly OutboxMessage[]>();
+      deps.loadMessages.mockReturnValueOnce(pending.promise);
+      const loading = store.getState().load("crew-1");
+      return { pending, loading };
+    };
+
+    it("keeps a message sent offline before the stale list arrives", async () => {
+      const store = await setup();
+      const { pending, loading } = startLoad(store);
+      const queued = message("m-real", { body: "Hej", createdAt: NOW });
+      deps.queueMessage.execute.mockResolvedValueOnce(queued);
+
+      await expect(store.getState().send("Hej", "user-1")).resolves.toBe(true);
+      // The sync started by send() reports offline, so there is no reload.
+      await store.getState().sync();
+      expect(deps.syncOutbox.execute).toHaveBeenCalled();
+      pending.resolve([]);
+      await loading;
+
+      expect(store.getState().messages).toEqual([queued]);
+    });
+
+    it("does not leave a rolled-back send behind", async () => {
+      const store = await setup();
+      const { pending, loading } = startLoad(store);
+      deps.queueMessage.execute.mockRejectedValueOnce(new Error("db"));
+
+      await expect(store.getState().send("Hej", "user-1")).resolves.toBe(
+        false,
+      );
+      pending.resolve([message("m-other")]);
+      await loading;
+
+      expect(store.getState().messages.map((m) => m.id)).toEqual(["m-other"]);
+    });
+
+    it("keeps a retry saved before the stale list arrives", async () => {
+      const failed = message("m1", { attempts: MAX_AUTO_RETRY_ATTEMPTS });
+      const store = await setup([failed]);
+      const { pending, loading } = startLoad(store);
+      deps.retryMessage.execute.mockResolvedValueOnce(undefined);
+
+      await expect(store.getState().retry("m1")).resolves.toBe(true);
+      pending.resolve([failed]);
+      await loading;
+
+      expect(store.getState().messages).toEqual([
+        { ...failed, attempts: 0, nextAttemptAt: null },
+      ]);
+    });
+
+    it("keeps a rolled-back retry exactly once", async () => {
+      const failed = message("m1", { attempts: MAX_AUTO_RETRY_ATTEMPTS });
+      const store = await setup([failed]);
+      const { pending, loading } = startLoad(store);
+      deps.retryMessage.execute.mockRejectedValueOnce(new Error("db"));
+
+      await expect(store.getState().retry("m1")).resolves.toBe(false);
+      pending.resolve([failed]);
+      await loading;
+
+      expect(store.getState().messages).toEqual([failed]);
+    });
+  });
+
   describe("reset", () => {
     it("restores the initial state", async () => {
       const store = await setup([message("m1")]);

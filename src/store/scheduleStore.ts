@@ -9,6 +9,7 @@ import type { AddToScheduleUseCase } from "@/use-cases/AddToScheduleUseCase";
 import {
   type LoadStatus,
   mergePending,
+  unionIds,
   withId,
   withoutId,
 } from "./optimistic";
@@ -92,18 +93,27 @@ export function createScheduleStore(deps: ScheduleStoreDeps) {
   let loadToken = 0;
   // Bumped by reset(): write actions started before it must not touch the new state.
   let epoch = 0;
+  // Ids written (saved or rolled back) since the current load started –
+  // their local state is newer than whatever that load returns.
+  let settledIds = new Set<string>();
 
   return createStore<ScheduleState>()((set, get) => ({
     ...initialScheduleData(),
 
     async load(userId, eventId) {
       const token = ++loadToken;
+      settledIds = new Set<string>();
       set({ userId, eventId, loadStatus: "loading" });
       try {
         const loaded = await deps.loadSchedule(userId);
         if (token !== loadToken) return false;
         const { items, pendingIds } = get();
-        const merged = mergePending(loaded, items, pendingIds, idOf);
+        const merged = mergePending(
+          loaded,
+          items,
+          unionIds(pendingIds, settledIds),
+          idOf,
+        );
         set({
           items: merged,
           plannedIds: plannedIdsOf(merged),
@@ -148,6 +158,7 @@ export function createScheduleStore(deps: ScheduleStoreDeps) {
           allowConflict: options?.allowConflict,
         });
         if (startedIn !== epoch) return true;
+        settledIds.add(concertId);
         set((state) => ({
           // "already_planned" keeps the optimistic item – the concert is planned either way.
           items:
@@ -161,6 +172,7 @@ export function createScheduleStore(deps: ScheduleStoreDeps) {
         return true;
       } catch (error) {
         if (startedIn !== epoch) return false;
+        settledIds.add(concertId);
         // 2. Roll back only this concert, not a snapshot of the whole state.
         set((state) => ({
           items: state.items.filter((item) => item.concertId !== concertId),
@@ -194,12 +206,14 @@ export function createScheduleStore(deps: ScheduleStoreDeps) {
       try {
         await deps.removeFromSchedule(userId, concertId);
         if (startedIn !== epoch) return true;
+        settledIds.add(concertId);
         set((state) => ({
           pendingIds: withoutId(state.pendingIds, concertId),
         }));
         return true;
       } catch {
         if (startedIn !== epoch) return false;
+        settledIds.add(concertId);
         set((state) => {
           const restored = [...state.items];
           restored.splice(Math.min(index, restored.length), 0, removed);
@@ -221,6 +235,7 @@ export function createScheduleStore(deps: ScheduleStoreDeps) {
     reset() {
       loadToken += 1;
       epoch += 1;
+      settledIds = new Set<string>();
       set(initialScheduleData());
     },
   }));
