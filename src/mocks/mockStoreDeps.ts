@@ -19,6 +19,7 @@ import type { IOutboxRepository } from "@/domain/repositories/IOutboxRepository"
 import type { IScheduleRepository } from "@/domain/repositories/IScheduleRepository";
 import type { AuthStoreDeps } from "@/store/authStore";
 import type { CheckInStoreDeps } from "@/store/checkInStore";
+import type { LineupStoreDeps } from "@/store/lineupStore";
 import type { MessageStoreDeps } from "@/store/messageStore";
 import type { ScheduleStoreDeps } from "@/store/scheduleStore";
 import { AddToScheduleUseCase } from "@/use-cases/AddToScheduleUseCase";
@@ -27,15 +28,8 @@ import { QueueMessageUseCase } from "@/use-cases/QueueMessageUseCase";
 import { RetryMessageUseCase } from "@/use-cases/RetryMessageUseCase";
 import { SyncOutboxUseCase } from "@/use-cases/SyncOutboxUseCase";
 
-import {
-  mockConcerts,
-  mockCurrentUserId,
-  mockEvent,
-  mockMessages,
-  mockPlannedConcertIds,
-  mockStages,
-  mockUsers,
-} from "./mockData";
+import { demoConcerts, demoEvent, demoMessages } from "./demoData";
+import { mockCurrentUserId, mockPlannedConcertIds, mockStages, mockUsers } from "./mockData";
 
 export const MOCK_DELAY_MS = 300;
 
@@ -60,6 +54,22 @@ async function write(): Promise<void> {
   }
 }
 
+let failNextRead = false;
+
+/** Makes the next mocked read (line-up, transit) reject once – demo of the error state. */
+export function failNextLoad(): void {
+  failNextRead = true;
+}
+
+/** Waits like a real device and throws if failNextLoad() was armed. */
+async function read(): Promise<void> {
+  await delay();
+  if (failNextRead) {
+    failNextRead = false;
+    throw new Error("Mock read failed (failNextLoad).");
+  }
+}
+
 let idCounter = 0;
 const idGenerator: IIdGenerator = {
   generate: () => {
@@ -77,15 +87,15 @@ let scheduleItems: ScheduleItem[] = mockPlannedConcertIds.map((concertId) => ({
   concertId,
   addedAt: "2027-06-20T12:00:00+02:00",
 }));
-let outbox: OutboxMessage[] = [...mockMessages];
+let outbox: OutboxMessage[] = [...demoMessages];
 let checkIns: CheckIn[] = [];
 const users: User[] = [...mockUsers];
 
 const eventRepository: IEventRepository = {
-  getCurrentEvent: async () => mockEvent,
+  getCurrentEvent: async () => demoEvent,
   getStages: async (eventId) => mockStages.filter((s) => s.eventId === eventId),
   getConcerts: async (eventId) =>
-    mockConcerts.filter((c) => c.eventId === eventId),
+    demoConcerts.filter((c) => c.eventId === eventId),
   getPoisInBounds: async () => [],
   saveEventPackage: async () => undefined,
 };
@@ -241,5 +251,17 @@ export const mockAuthDeps: AuthStoreDeps = {
     };
     users.push(user);
     return user;
+  },
+};
+
+export const mockLineupDeps: LineupStoreDeps = {
+  loadLineup: async (eventId) => {
+    await read();
+    const [event, stages, concerts] = await Promise.all([
+      eventRepository.getCurrentEvent(),
+      eventRepository.getStages(eventId),
+      eventRepository.getConcerts(eventId),
+    ]);
+    return { event: event?.id === eventId ? event : null, stages, concerts };
   },
 };
