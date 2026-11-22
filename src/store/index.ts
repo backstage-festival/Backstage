@@ -7,6 +7,7 @@ import {
   mockMessageDeps,
   mockNetworkService,
   mockScheduleDeps,
+  mockTransitDeps,
 } from "@/mocks/mockStoreDeps";
 
 import { type AuthState, createAuthStore } from "./authStore";
@@ -16,6 +17,7 @@ import { createLineupStore, type LineupState } from "./lineupStore";
 import { createMessageStore, type MessageState } from "./messageStore";
 import { resetOnLogout } from "./resetOnLogout";
 import { createScheduleStore, type ScheduleState } from "./scheduleStore";
+import { createTransitStore, type TransitState } from "./transitStore";
 
 // TEMP: mock deps until #32 (DI)
 export const scheduleStore = createScheduleStore(mockScheduleDeps);
@@ -30,8 +32,9 @@ export const connectionStore = createConnectionStore({
 });
 
 // TEMP: mock deps until #32 (DI)
-// Event data, not user data: left out of resetOnLogout on purpose.
+// Event and transit data, not user data: left out of resetOnLogout on purpose.
 export const lineupStore = createLineupStore(mockLineupDeps);
+export const transitStore = createTransitStore(mockTransitDeps);
 
 // App-lifetime subscription: logout clears the user-scoped stores.
 resetOnLogout(authStore, [scheduleStore, messageStore, checkInStore]);
@@ -62,6 +65,10 @@ export function useLineupStore<T>(selector: (state: LineupState) => T): T {
   return useStore(lineupStore, selector);
 }
 
+export function useTransitStore<T>(selector: (state: TransitState) => T): T {
+  return useStore(transitStore, selector);
+}
+
 export { selectIsSignedIn } from "./authStore";
 export type { AuthError, SessionUser } from "./authStore";
 export { selectIsCheckedIn, selectIsCheckInPending } from "./checkInStore";
@@ -77,3 +84,10 @@ export {
 export type { MessageError } from "./messageStore";
 export { selectIsPlanned, selectIsSchedulePending } from "./scheduleStore";
 export type { ScheduleError } from "./scheduleStore";
+export {
+  departsAtMs,
+  selectDepartureState,
+  selectTransitFreshness,
+  selectUpcomingDepartures,
+} from "./transitStore";
+export type { TransitError } from "./transitStore";
