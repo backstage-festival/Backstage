@@ -4,9 +4,8 @@ import type { Departure } from "@/domain/entities/Transit";
 
 import {
   FALLBACK_STAGE_ID,
-  findConflict,
   formatTime,
-  overlaps,
+  messageStatusOf,
   toDepartureRowProps,
   toMessageBubbleProps,
   toNowPassProps,
@@ -32,16 +31,16 @@ describe("formatTime", () => {
     expect(formatTime("2027-07-02T19:49:00Z")).toBe("21:49");
     expect(formatTime("2027-01-15T20:05:00Z")).toBe("21:05");
   });
+
+  it("never throws for an invalid date", () => {
+    expect(formatTime("not a date")).toBe("–");
+  });
 });
 
 describe("toPerformanceCardProps", () => {
   const now = new Date("2027-07-02T20:00:00+02:00");
 
-  it("detects a conflict and builds the status line from the other concert", () => {
-    expect(overlaps(hanna, mewy)).toBe(true);
-    expect(overlaps(wilga, hanna)).toBe(false); // ends exactly when the other starts
-    expect(findConflict(hanna, [wilga, mewy])).toBe(mewy);
-
+  it("builds the status line from the conflicting concert given by the caller", () => {
     const props = toPerformanceCardProps(hanna, s2, { inPlan: true, stageCodes, conflictWith: { concert: mewy, stage: s1 }, now });
     expect(props.state).toBe("conflict");
     expect(props.statusLine).toBe("Kolizja · S1 od 22:15");
@@ -164,6 +163,21 @@ describe("toDepartureRowProps", () => {
   });
 });
 
+describe("messageStatusOf", () => {
+  it.each([
+    ["sent", false, "sent"],
+    ["sent", true, "sent"],
+    ["queued", true, "sending"],
+    ["stale", true, "sending"],
+    ["failed", true, "sending"],
+    ["queued", false, "queued"],
+    ["stale", false, "stale"],
+    ["failed", false, "failed"],
+  ] as const)("%s, sending=%s → %s", (delivery, sending, status) => {
+    expect(messageStatusOf(delivery, sending)).toBe(status);
+  });
+});
+
 describe("toMessageBubbleProps", () => {
   const me = "u-me";
   const queued: OutboxMessage = {
@@ -178,35 +192,33 @@ describe("toMessageBubbleProps", () => {
     sentAt: null,
   };
 
-  afterEach(() => {
-    jest.useRealTimers();
+  it("labels a queued message with its time", () => {
+    const props = toMessageBubbleProps(queued, { currentUserId: me, deliveryState: "queued" });
+    expect(props.status).toBe("queued");
+    expect(props.statusLabel).toBe("W kolejce · 21:10");
   });
 
-  it("is queued before 20 minutes and stale after", () => {
-    jest.useFakeTimers();
-
-    jest.setSystemTime(new Date("2027-07-02T21:29:00+02:00"));
-    const fresh = toMessageBubbleProps(queued, { currentUserId: me, staleAfterMin: 20 });
-    expect(fresh.status).toBe("queued");
-    expect(fresh.statusLabel).toBe("W kolejce · 21:10");
-
-    jest.setSystemTime(new Date("2027-07-02T21:50:00+02:00"));
-    const stale = toMessageBubbleProps(queued, { currentUserId: me, staleAfterMin: 20 });
+  it("labels a stale message with the minutes it waited", () => {
+    const now = new Date("2027-07-02T21:50:00+02:00");
+    const stale = toMessageBubbleProps(queued, { currentUserId: me, deliveryState: "stale", now });
     expect(stale.status).toBe("stale");
     expect(stale.statusLabel).toBe("Nieaktualna · 40 min w kolejce");
   });
 
-  it("derives failed and sending", () => {
-    const now = new Date("2027-07-02T21:15:00+02:00");
-    expect(toMessageBubbleProps({ ...queued, nextAttemptAt: null }, { currentUserId: me, now }).status).toBe("failed");
-    expect(
-      toMessageBubbleProps(queued, { currentUserId: me, now, sendingIds: new Set(["m"]) }).status,
-    ).toBe("sending");
+  it("shows failed and sending from the given state", () => {
+    expect(toMessageBubbleProps(queued, { currentUserId: me, deliveryState: "failed" })).toMatchObject({
+      status: "failed",
+      statusLabel: "Nie wysłano",
+    });
+    expect(toMessageBubbleProps(queued, { currentUserId: me, deliveryState: "stale", sending: true })).toMatchObject({
+      status: "sending",
+      statusLabel: "Wysyłanie…",
+    });
   });
 
   it("maps sent own and crew messages", () => {
     const sent: OutboxMessage = { ...queued, status: "sent", sentAt: "2027-07-02T21:11:00+02:00" };
-    expect(toMessageBubbleProps(sent, { currentUserId: me })).toMatchObject({
+    expect(toMessageBubbleProps(sent, { currentUserId: me, deliveryState: "sent" })).toMatchObject({
       author: "me",
       status: "sent",
       time: "21:11",
@@ -215,8 +227,8 @@ describe("toMessageBubbleProps", () => {
 
     const crew = toMessageBubbleProps(
       { ...sent, authorId: "u-kuba" },
-      { currentUserId: me, authorNames: { "u-kuba": "Kuba" } },
+      { currentUserId: me, deliveryState: "sent", senderName: "Ekipa" },
     );
-    expect(crew).toEqual({ id: "m", author: "crew", senderName: "Kuba", time: "21:11", text: sent.body });
+    expect(crew).toEqual({ id: "m", author: "crew", senderName: "Ekipa", time: "21:11", text: sent.body });
   });
 });

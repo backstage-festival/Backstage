@@ -4,10 +4,11 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
-import { findConflict, toNowPassProps, toPerformanceCardProps } from "@/components/mappers";
+import { toNowPassProps, toPerformanceCardProps } from "@/components/mappers";
 import { NowPass } from "@/components/NowPass";
 import { PerformanceCard } from "@/components/PerformanceCard";
 import type { Concert, Stage } from "@/domain/entities/Event";
+import { findScheduleConflicts } from "@/domain/utils/scheduleConflict";
 import {
   mockClock,
   mockConcerts,
@@ -65,7 +66,7 @@ export default function PlanScreen() {
       const stage = stageOf(concert);
       if (!stage) return [];
       const inPlan = planned.has(concert.id);
-      const other = inPlan ? findConflict(concert, plannedConcerts) : undefined;
+      const other = inPlan ? findScheduleConflicts(concert, plannedConcerts)[0] : undefined;
       const otherStage = other ? stageOf(other) : undefined;
       return [
         toPerformanceCardProps(concert, stage, {

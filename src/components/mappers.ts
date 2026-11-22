@@ -5,6 +5,7 @@
 import type { Concert, Stage } from "@/domain/entities/Event";
 import type { OutboxMessage } from "@/domain/entities/OutboxMessage";
 import type { Departure } from "@/domain/entities/Transit";
+import type { MessageDeliveryState } from "@/domain/utils/messageStaleness";
 import { strings } from "@/strings";
 import type {
   DepartureRowProps,
@@ -29,6 +30,8 @@ const LEAVE_AT_WINDOW_MS = 15 * MINUTE_MS;
 /* Time                                                                 */
 /* ------------------------------------------------------------------ */
 
+const INVALID_TIME = "–";
+
 const warsawTime = new Intl.DateTimeFormat("pl-PL", {
   timeZone: "Europe/Warsaw",
   hour: "2-digit",
@@ -36,10 +39,10 @@ const warsawTime = new Intl.DateTimeFormat("pl-PL", {
   hourCycle: "h23",
 });
 
-/** ISO string or Date → „21:49” in Europe/Warsaw. */
+/** ISO string or Date → „21:49” in Europe/Warsaw. An invalid date gives „–” (never throws while rendering). */
 export function formatTime(value: string | Date): string {
   const date = typeof value === "string" ? new Date(value) : value;
-  return warsawTime.format(date);
+  return Number.isNaN(date.getTime()) ? INVALID_TIME : warsawTime.format(date);
 }
 
 function ms(iso: string): number {
@@ -71,21 +74,12 @@ function stageNumberOf(stage: Stage, stageCodes: StageCodes): number {
   return Number(stageIdOf(stage, stageCodes).slice(1));
 }
 
-/** Two concerts overlap when one starts before the other ends. */
-export function overlaps(a: Concert, b: Concert): boolean {
-  return a.id !== b.id && ms(a.startsAt) < ms(b.endsAt) && ms(b.startsAt) < ms(a.endsAt);
-}
-
-/** First planned concert that overlaps `concert` (selector logic, not server). */
-export function findConflict(concert: Concert, planned: readonly Concert[]): Concert | undefined {
-  return planned.find((other) => overlaps(concert, other));
-}
-
 export type PerformanceCardData = Omit<PerformanceCardProps, "onPress" | "onTogglePlan" | "testID">;
 
 export interface PerformanceCardOptions {
   inPlan: boolean;
   stageCodes: StageCodes;
+  /** First planned concert that overlaps this one – found by the caller with the domain rule. */
   conflictWith?: { concert: Concert; stage: Stage };
   now?: Date;
 }
@@ -223,40 +217,28 @@ export type MessageBubbleData = Omit<
 
 export interface MessageBubbleOptions {
   currentUserId: string;
+  /** Delivery state from the domain rule (selectDeliveryState), computed by the caller. */
+  deliveryState: MessageDeliveryState;
+  /** A write for this message is in flight (store pendingIds) – shown as „Wysyłanie…”. */
+  sending?: boolean;
   now?: Date;
-  /** C04: after this many minutes in the queue the message is stale (default 20). */
-  // TEMP: replace with domain rule from #21 (Domain & QA)
-  staleAfterMin?: number;
-  /** authorId → display name (OutboxMessage has only authorId). */
-  authorNames?: Readonly<Record<string, string>>;
-  /** Ids the gateway is sending right now (transient, not stored). */
-  sendingIds?: ReadonlySet<string>;
+  /** Shown above crew bubbles (OutboxMessage has only authorId). */
+  senderName?: string;
 }
 
 /**
- * Domain stores only queued | sent. UI statuses are derived:
- * - failed: queued, already attempted, no further attempt scheduled,
- * - stale: queued for ≥ staleAfterMin,
- * - sending: id in sendingIds.
+ * The domain stores only queued | sent and derives sent / failed / stale /
+ * queued. „sending” is UI-only: the user's write is in flight.
  */
-export function messageStatusOf(
-  message: OutboxMessage,
-  now: Date,
-  staleAfterMin: number,
-  sendingIds?: ReadonlySet<string>,
-): MessageStatus {
-  if (message.status === "sent") return "sent";
-  // TEMP: replace with domain rule from #21 (Domain & QA)
-  if (message.attempts > 0 && message.nextAttemptAt === null) return "failed";
-  // TEMP: replace with domain rule from #21 (Domain & QA)
-  if (now.getTime() - ms(message.createdAt) >= staleAfterMin * MINUTE_MS) return "stale";
-  if (sendingIds?.has(message.id)) return "sending";
-  return "queued";
+export function messageStatusOf(deliveryState: MessageDeliveryState, sending: boolean): MessageStatus {
+  if (deliveryState === "sent") return "sent";
+  if (sending) return "sending";
+  return deliveryState;
 }
 
 export function toMessageBubbleProps(
   message: OutboxMessage,
-  { currentUserId, now = new Date(), staleAfterMin = 20, authorNames, sendingIds }: MessageBubbleOptions,
+  { currentUserId, deliveryState, sending = false, now = new Date(), senderName = "" }: MessageBubbleOptions,
 ): MessageBubbleData {
   const own = message.authorId === currentUserId;
 
@@ -264,13 +246,13 @@ export function toMessageBubbleProps(
     return {
       id: message.id,
       author: "crew",
-      senderName: authorNames?.[message.authorId] ?? "",
+      senderName,
       time: formatTime(message.sentAt ?? message.createdAt),
       text: message.body,
     };
   }
 
-  const status = messageStatusOf(message, now, staleAfterMin, sendingIds);
+  const status = messageStatusOf(deliveryState, sending);
   const time = formatTime(status === "sent" ? (message.sentAt ?? message.createdAt) : message.createdAt);
 
   let statusLabel: string;

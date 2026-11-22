@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { toMessageBubbleProps } from "@/components/mappers";
 import { MessageBubble } from "@/components/MessageBubble";
 import { mockClock, mockCurrentUserId, mockMessages, mockSendingIds, mockUsers } from "@/mocks/mockData";
+import { selectDeliveryState } from "@/store";
 import { useTheme } from "@/theme/ThemeProvider";
 import { spacing } from "@/theme/theme";
 
@@ -25,10 +26,10 @@ export default function CrewScreen() {
             key={message.id}
             {...toMessageBubbleProps(message, {
               currentUserId: mockCurrentUserId,
+              deliveryState: selectDeliveryState(message, mockClock.crew),
+              sending: mockSendingIds.has(message.id),
               now: mockClock.crew,
-              staleAfterMin: 20,
-              authorNames,
-              sendingIds: mockSendingIds,
+              senderName: authorNames[message.authorId] ?? "",
             })}
             onCancel={noop}
             onSendAnyway={noop}
