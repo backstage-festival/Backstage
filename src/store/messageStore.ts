@@ -316,11 +316,28 @@ export function createMessageStore(deps: MessageStoreDeps) {
   });
 }
 
+/**
+ * Selectors run during render, so they must not throw. The domain rule throws
+ * DomainError for an unparsable createdAt; such a message is shown as
+ * "queued" (it is still in the outbox). Any other error is a bug and rethrown.
+ */
+const safeDeliveryState = (
+  message: OutboxMessage,
+  now: Date,
+): MessageDeliveryState => {
+  try {
+    return getMessageDeliveryState(message, now);
+  } catch (error) {
+    if (error instanceof DomainError) return "queued";
+    throw error;
+  }
+};
+
 /** `now` is passed in so a screen can re-render on its own clock tick. */
 export const selectDeliveryState = (
   message: OutboxMessage,
   now: Date = new Date(),
-): MessageDeliveryState => getMessageDeliveryState(message, now);
+): MessageDeliveryState => safeDeliveryState(message, now);
 
 /** Messages still waiting for delivery: "queued" or "stale", not "failed" or "sent". */
 export const selectQueuedCount = (
@@ -328,7 +345,7 @@ export const selectQueuedCount = (
   now: Date = new Date(),
 ): number =>
   state.messages.reduce((count, message) => {
-    const delivery = getMessageDeliveryState(message, now);
+    const delivery = safeDeliveryState(message, now);
     return delivery === "queued" || delivery === "stale" ? count + 1 : count;
   }, 0);
 

@@ -598,6 +598,17 @@ describe("messageStore", () => {
       expect(selectQueuedCount(store.getState())).toBe(2);
     });
 
+    it("treats a message with an invalid createdAt as queued instead of throwing", () => {
+      const broken = message("m1", { createdAt: "not-a-date" });
+
+      expect(selectDeliveryState(broken)).toBe("queued");
+      expect(
+        selectQueuedCount({
+          messages: [broken, message("m2", { status: "sent", sentAt: NOW })],
+        }),
+      ).toBe(1);
+    });
+
     it("stops counting a message once it runs out of retry attempts", () => {
       const waiting = message("m1", {
         createdAt: NOW,
