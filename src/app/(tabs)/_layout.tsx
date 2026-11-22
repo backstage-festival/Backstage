@@ -2,29 +2,22 @@ import { BottomTabBar, Tabs, type BottomTabBarProps } from "expo-router/js-tabs"
 import { View } from "react-native";
 
 import { ConnectionBar } from "@/components/ConnectionBar";
-import { formatTime } from "@/components/mappers";
-import { mockDepartures } from "@/mocks/mockData";
-import { strings } from "@/strings";
+import { useConnectionBar, useLineupLoader } from "@/hooks/useConnectionBar";
 import { useTheme } from "@/theme/ThemeProvider";
-
-// TEMP: mock data until #27 – connection state comes from useConnectionStore later.
-const mockFetchedAt = mockDepartures[0]?.fetchedAt ?? new Date().toISOString();
 
 function TabBarWithConnection(props: BottomTabBarProps) {
   const { theme } = useTheme();
+  const bar = useConnectionBar();
   return (
     <View style={{ backgroundColor: theme.colors.background }}>
-      <ConnectionBar
-        state="offline"
-        detail={strings.connection.dataFrom(formatTime(mockFetchedAt))}
-        queued={3}
-      />
+      <ConnectionBar {...bar} />
       <BottomTabBar {...props} />
     </View>
   );
 }
 
 export default function TabsLayout() {
+  useLineupLoader();
   return (
     <Tabs
       backBehavior="initialRoute"

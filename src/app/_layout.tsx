@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
+import { useConnectionMonitor } from "@/hooks/useConnectionBar";
 import { fontAssets } from "@/theme/fontAssets";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 
@@ -12,6 +13,8 @@ void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
+  // Network state for the ConnectionBar and outbox sync – once per app run.
+  useConnectionMonitor();
 
   useEffect(() => {
     if (fontError) {

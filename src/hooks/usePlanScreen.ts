@@ -81,17 +81,12 @@ export function usePlanScreen(filters: PlanFilters, playedExpanded: boolean): Pl
       loadStatus: state.loadStatus,
     })),
   );
-  const loadLineup = useLineupStore((state) => state.load);
   const plannedIds = useScheduleStore((state) => state.plannedIds);
   const lastError = useScheduleStore((state) => state.lastError);
   const loadSchedule = useScheduleStore((state) => state.load);
   const add = useScheduleStore((state) => state.add);
   const remove = useScheduleStore((state) => state.remove);
   const clearError = useScheduleStore((state) => state.clearError);
-
-  useEffect(() => {
-    void loadLineup(eventId);
-  }, [loadLineup, eventId]);
 
   useEffect(() => {
     void loadSchedule(userId, eventId);
