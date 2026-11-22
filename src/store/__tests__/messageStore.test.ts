@@ -354,17 +354,120 @@ describe("messageStore", () => {
       expect(store.getState().syncing).toBe(false);
     });
 
-    it("shares one in-flight sync between callers", async () => {
+    it("runs one extra pass for any number of sync() calls during a pass", async () => {
       const store = await setup();
       const pending = deferred<SyncOutboxResult>();
       deps.syncOutbox.execute.mockReturnValueOnce(pending.promise);
 
       const first = store.getState().sync();
       const second = store.getState().sync();
+      const third = store.getState().sync();
+      expect(second).toBe(first);
+      expect(third).toBe(first);
       pending.resolve(OFFLINE);
-      await Promise.all([first, second]);
+      await Promise.all([first, second, third]);
+
+      expect(deps.syncOutbox.execute).toHaveBeenCalledTimes(2);
+      expect(store.getState().syncing).toBe(false);
+    });
+
+    it("does not loop while offline without a new request", async () => {
+      const store = await setup();
+
+      await store.getState().sync();
 
       expect(deps.syncOutbox.execute).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("sync rerun", () => {
+    const ONLINE: SyncOutboxResult = {
+      offline: false,
+      sentIds: [],
+      failedId: null,
+    };
+
+    it("pushes a message sent while the previous sync is running", async () => {
+      const store = await setup();
+      const firstPass = deferred<SyncOutboxResult>();
+      deps.syncOutbox.execute
+        .mockReturnValueOnce(firstPass.promise)
+        .mockResolvedValueOnce(ONLINE);
+      deps.loadMessages.mockResolvedValue([]);
+      deps.queueMessage.execute
+        .mockResolvedValueOnce(message("m1", { createdAt: NOW }))
+        .mockResolvedValueOnce(message("m2", { createdAt: NOW }));
+
+      // First send starts the chain; the second one arrives mid-pass.
+      await store.getState().send("one", "user-1");
+      await store.getState().send("two", "user-1");
+      const chain = store.getState().sync();
+      expect(deps.syncOutbox.execute).toHaveBeenCalledTimes(1);
+
+      firstPass.resolve(ONLINE);
+      await expect(chain).resolves.toBeUndefined();
+
+      expect(deps.syncOutbox.execute).toHaveBeenCalledTimes(2);
+      expect(store.getState().syncing).toBe(false);
+    });
+
+    it("runs an extra pass after a retry during sync", async () => {
+      const failed = message("m1", { attempts: MAX_AUTO_RETRY_ATTEMPTS });
+      const store = await setup([failed]);
+      const firstPass = deferred<SyncOutboxResult>();
+      deps.syncOutbox.execute.mockReturnValueOnce(firstPass.promise);
+      deps.retryMessage.execute.mockResolvedValueOnce(undefined);
+
+      const chain = store.getState().sync();
+      await expect(store.getState().retry("m1")).resolves.toBe(true);
+      firstPass.resolve(OFFLINE);
+      await chain;
+
+      expect(deps.syncOutbox.execute).toHaveBeenCalledTimes(2);
+    });
+
+    it("keeps syncing true between passes", async () => {
+      const store = await setup();
+      const firstPass = deferred<SyncOutboxResult>();
+      deps.syncOutbox.execute
+        .mockReturnValueOnce(firstPass.promise)
+        .mockResolvedValueOnce(ONLINE);
+      deps.loadMessages.mockResolvedValue([]);
+      const seen: boolean[] = [];
+      const unsubscribe = store.subscribe((state, previous) => {
+        if (state.syncing !== previous.syncing) seen.push(state.syncing);
+      });
+
+      const chain = store.getState().sync();
+      void store.getState().sync();
+      firstPass.resolve(ONLINE);
+      await chain;
+      unsubscribe();
+
+      expect(deps.syncOutbox.execute).toHaveBeenCalledTimes(2);
+      expect(seen).toEqual([true, false]);
+    });
+
+    it("drops the requested pass when reset() happens mid-pass", async () => {
+      const store = await setup([message("m1")]);
+      const firstPass = deferred<SyncOutboxResult>();
+      deps.syncOutbox.execute.mockReturnValueOnce(firstPass.promise);
+
+      const chain = store.getState().sync();
+      void store.getState().sync();
+      store.getState().reset();
+      firstPass.resolve(ONLINE);
+      await chain;
+
+      expect(deps.syncOutbox.execute).toHaveBeenCalledTimes(1);
+      expect(deps.loadMessages).toHaveBeenCalledTimes(1);
+      expect(store.getState()).toMatchObject({
+        crewId: null,
+        messages: [],
+        loadStatus: "idle",
+        syncing: false,
+        lastError: null,
+      });
     });
   });
 

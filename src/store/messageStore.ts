@@ -93,6 +93,8 @@ export function createMessageStore(deps: MessageStoreDeps) {
   // their local state is newer than whatever that load returns.
   let settledIds = new Set<string>();
   let inFlightSync: Promise<void> | null = null;
+  // Set by sync() while a pass is running: the chain runs one more pass.
+  let rerunRequested = false;
 
   return createStore<MessageState>()((set, get) => {
     /** Loads the crew list; local state wins for messages written meanwhile. */
@@ -115,31 +117,45 @@ export function createMessageStore(deps: MessageStoreDeps) {
       return true;
     };
 
-    const runSync = async (startedIn: number): Promise<void> => {
+    /** One pass: push the outbox, then reload the list if we were online. */
+    const runSyncPass = async (startedIn: number): Promise<void> => {
+      let result;
+      try {
+        result = await deps.syncOutbox.execute();
+      } catch {
+        if (startedIn === epoch) set({ lastError: { kind: "syncFailed" } });
+        return;
+      }
+      const { crewId } = get();
+      if (result.offline || crewId === null || startedIn !== epoch) return;
+
+      // This reload supersedes a load() in flight, so it must settle loadStatus.
+      const token = ++loadToken;
+      try {
+        await reload(crewId, token);
+      } catch {
+        if (token !== loadToken) return;
+        set((state) => ({
+          lastError: { kind: "syncFailed" },
+          loadStatus:
+            state.loadStatus === "loading" ? "error" : state.loadStatus,
+        }));
+      }
+    };
+
+    /**
+     * Runs passes until nobody asks for another one. A pass reads the outbox
+     * once, so a message queued during it needs a fresh pass – started only
+     * after the previous one settled, so SyncOutboxUseCase does not hand back
+     * its in-flight promise. `syncing` stays true for the whole chain.
+     */
+    const runSyncChain = async (startedIn: number): Promise<void> => {
       set({ syncing: true });
       try {
-        let result;
-        try {
-          result = await deps.syncOutbox.execute();
-        } catch {
-          if (startedIn === epoch) set({ lastError: { kind: "syncFailed" } });
-          return;
-        }
-        const { crewId } = get();
-        if (result.offline || crewId === null || startedIn !== epoch) return;
-
-        // This reload supersedes a load() in flight, so it must settle loadStatus.
-        const token = ++loadToken;
-        try {
-          await reload(crewId, token);
-        } catch {
-          if (token !== loadToken) return;
-          set((state) => ({
-            lastError: { kind: "syncFailed" },
-            loadStatus:
-              state.loadStatus === "loading" ? "error" : state.loadStatus,
-          }));
-        }
+        do {
+          rerunRequested = false;
+          await runSyncPass(startedIn);
+        } while (rerunRequested && startedIn === epoch);
       } finally {
         if (startedIn === epoch) set({ syncing: false });
       }
@@ -270,13 +286,16 @@ export function createMessageStore(deps: MessageStoreDeps) {
       },
 
       sync() {
-        if (inFlightSync === null) {
-          const current = runSync(epoch).finally(() => {
-            if (inFlightSync === current) inFlightSync = null;
-          });
-          inFlightSync = current;
+        if (inFlightSync !== null) {
+          // The running pass may have read the outbox before this caller's write.
+          rerunRequested = true;
+          return inFlightSync;
         }
-        return inFlightSync;
+        const current = runSyncChain(epoch).finally(() => {
+          if (inFlightSync === current) inFlightSync = null;
+        });
+        inFlightSync = current;
+        return current;
       },
 
       clearError() {
@@ -287,8 +306,10 @@ export function createMessageStore(deps: MessageStoreDeps) {
         loadToken += 1;
         epoch += 1;
         settledIds = new Set<string>();
-        // The old sync may still finish, but it is no longer shared with new callers.
+        // The old chain may still finish its pass, but it is no longer shared
+        // with new callers and never starts another pass.
         inFlightSync = null;
+        rerunRequested = false;
         set(initialMessageData());
       },
     };
