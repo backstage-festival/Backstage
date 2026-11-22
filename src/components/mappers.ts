@@ -21,10 +21,6 @@ import type {
 const MINUTE_MS = 60_000;
 /** C05: walking speed used for distance ↔ time. */
 export const WALK_SPEED_M_PER_S = 1.3;
-/** Leave within the next minute → „Wyjdź teraz”. */
-const LEAVE_NOW_WINDOW_MS = MINUTE_MS;
-/** Leave within 15 minutes → „Wyjdź o HH:MM”. */
-const LEAVE_AT_WINDOW_MS = 15 * MINUTE_MS;
 
 /* ------------------------------------------------------------------ */
 /* Time                                                                 */
@@ -165,25 +161,38 @@ export function walkDistanceM(walkSeconds: number): number {
   return Math.round((walkSeconds * WALK_SPEED_M_PER_S) / 10) * 10;
 }
 
+/** Walking time for a distance at the C05 speed (NearbyStop.distanceMeters → seconds). */
+export function walkSecondsFor(distanceMeters: number): number {
+  return Math.round(distanceMeters / WALK_SPEED_M_PER_S);
+}
+
 /** StopCard meta: „300 m · 4 min”. */
 export function walkMeta(walkSeconds: number): string {
   return strings.transit.meta(walkDistanceM(walkSeconds), Math.ceil(walkSeconds / 60));
 }
 
-export function toDepartureRowProps(departure: Departure, walkSeconds: number, now: Date = new Date()): DepartureRowProps {
+export interface DepartureRowOptions {
+  now?: Date;
+  /** Data older than the TTL: show the timetable time, no delays (E08-Nieaktualne). */
+  timetableOnly?: boolean;
+}
+
+/**
+ * `state` comes from the transit selector (selectDepartureState), computed by
+ * the caller with the same clock and `timetableOnly`.
+ */
+export function toDepartureRowProps(
+  departure: Departure,
+  walkSeconds: number,
+  state: DepartureState,
+  { now = new Date(), timetableOnly = false }: DepartureRowOptions = {},
+): DepartureRowProps {
   const kind = transitKindOf(departure.routeName);
-  const live = departure.delaySeconds !== null;
-  const delaySeconds = departure.delaySeconds ?? 0;
+  const live = departure.delaySeconds !== null && !timetableOnly;
+  const delaySeconds = live ? (departure.delaySeconds ?? 0) : 0;
   const departsAt = ms(departure.departureAt) + delaySeconds * 1000;
   const leaveBy = departsAt - walkSeconds * 1000;
-  const untilLeave = leaveBy - now.getTime();
   const minutes = wholeMinutes(departsAt - now.getTime());
-
-  let state: DepartureState;
-  if (untilLeave < 0) state = "missed";
-  else if (untilLeave <= LEAVE_NOW_WINDOW_MS) state = "leaveNow";
-  else if (untilLeave <= LEAVE_AT_WINDOW_MS) state = "leaveAt";
-  else state = "later";
 
   let note: string | undefined;
   if (!live) {

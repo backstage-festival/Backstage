@@ -307,4 +307,32 @@ export const strings = {
       sendDisabled: "Napisz wiadomość, żeby ją wysłać",
     },
   },
+
+  /** S08 · Return screen */
+  returnScreen: {
+    title: "Powrót",
+    dataFrom: (time: string) => `Dane z ${time}`,
+    dataStale: "Dane nieaktualne",
+    alertTitle: (title: string) => `Utrudnienia · ${title}`,
+    /** „Ostatnie dane z 21:40 · 2 h 10 min temu” */
+    staleTitle: (time: string, age: string) => `Ostatnie dane z ${time} · ${age} temu`,
+    staleBody: (time: string) => `Pokazujemy rozkład, nie odjazdy na żywo. Opóźnień i zmian po ${time} nie widać.`,
+    age: (hours: number, minutes: number) => (hours > 0 ? `${hours} h ${minutes} min` : `${minutes} min`),
+    empty: {
+      noDataEyebrow: "Odjazdy",
+      noDataTitle: "Brak rozkładu w telefonie",
+      noDataBody: "Odjazdy nie zostały pobrane. Pobierz je w „Przygotuj się”, póki masz zasięg.",
+      prepare: "Przygotuj się",
+      nothingTitle: "Dziś już nic nie odjeżdża",
+      nothingBody: "Pierwsze odjazdy rano. Najbliższy postój taksówek: Brama 1.",
+      showGate: "Pokaż bramę 1",
+      locationEyebrow: "Brak lokalizacji",
+      locationTitle: "Nie wiem, gdzie jesteś",
+      locationBody: "Włącz lokalizację, żeby znaleźć najbliższe przystanki.",
+      errorEyebrow: "Nie wczytano odjazdów",
+      errorTitle: "Nie udało się wczytać odjazdów",
+      errorBody: "Spróbuj jeszcze raz. Rozkład pobierzesz też w „Przygotuj się”.",
+      retry: "Spróbuj ponownie",
+    },
+  },
 } as const;

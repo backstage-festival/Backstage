@@ -12,6 +12,7 @@ import {
   toPerformanceCardProps,
   transitKindOf,
   walkMeta,
+  walkSecondsFor,
 } from "../mappers";
 
 const s1: Stage = { id: "s1", eventId: "e", name: "Główna", location: { latitude: 0, longitude: 0 } };
@@ -123,20 +124,19 @@ describe("toDepartureRowProps", () => {
     fetchedAt: "2027-07-02T21:40:00+02:00",
   };
 
-  it("leave now when the walk eats the whole margin", () => {
-    const props = toDepartureRowProps(base, 231, now);
+  it("maps a live departure with the given state", () => {
+    const props = toDepartureRowProps(base, 231, "leaveNow", { now });
     expect(props).toMatchObject({ kind: "tram", state: "leaveNow", time: "21:49", inMinutes: "4 min", freshness: "live" });
+    expect(props.note).toBeUndefined();
   });
 
   it("keeps a missed departure", () => {
-    const props = toDepartureRowProps({ ...base, routeName: "SKM", departureAt: "2027-07-02T21:52:00+02:00" }, 462, now);
-    expect(props.state).toBe("missed");
-    expect(props.kind).toBe("skm");
+    const props = toDepartureRowProps({ ...base, routeName: "SKM", departureAt: "2027-07-02T21:52:00+02:00" }, 462, "missed", { now });
+    expect(props).toMatchObject({ state: "missed", kind: "skm", inMinutes: "7 min" });
   });
 
-  it("gives a leave-at note inside 15 minutes", () => {
-    const props = toDepartureRowProps({ ...base, routeName: "SKM", departureAt: "2027-07-02T22:07:00+02:00" }, 462, now);
-    expect(props.state).toBe("leaveAt");
+  it("gives a leave-at note", () => {
+    const props = toDepartureRowProps({ ...base, routeName: "SKM", departureAt: "2027-07-02T22:07:00+02:00" }, 462, "leaveAt", { now });
     expect(props.note).toBe("Wyjdź o 21:59");
   });
 
@@ -144,7 +144,8 @@ describe("toDepartureRowProps", () => {
     const props = toDepartureRowProps(
       { ...base, routeName: "6", departureAt: "2027-07-02T22:03:00+02:00", delaySeconds: 300 },
       231,
-      now,
+      "later",
+      { now },
     );
     expect(props).toMatchObject({ state: "later", time: "22:08", inMinutes: "23 min", note: "Opóźnienie · +5 min" });
   });
@@ -153,13 +154,20 @@ describe("toDepartureRowProps", () => {
     const props = toDepartureRowProps(
       { ...base, routeName: "N3", departureAt: "2027-07-02T23:58:00+02:00", delaySeconds: null },
       231,
-      new Date("2027-07-02T23:50:00+02:00"),
+      "later",
+      { now: new Date("2027-07-02T23:50:00+02:00") },
     );
     expect(props).toMatchObject({ kind: "night", freshness: "stale", inMinutes: "ok. 8 min", note: "Nocny · 300 m" });
   });
 
+  it("with data older than the TTL ignores the live delay", () => {
+    const props = toDepartureRowProps({ ...base, delaySeconds: 300 }, 231, "leaveNow", { now, timetableOnly: true });
+    expect(props).toMatchObject({ freshness: "stale", time: "21:49", inMinutes: "ok. 4 min", note: "Tramwaj · 300 m" });
+  });
+
   it("builds the stop meta from walking time", () => {
     expect(walkMeta(231)).toBe("300 m · 4 min");
+    expect(walkSecondsFor(300)).toBe(231);
   });
 });
 
