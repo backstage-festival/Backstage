@@ -190,4 +190,9 @@ export const strings = {
       guideHint: "Prowadzi do przystanku",
     },
   },
+
+  /** X-Stan · shared loading state */
+  screen: {
+    loading: "Wczytuję dane z telefonu…",
+  },
 } as const;

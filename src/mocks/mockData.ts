@@ -180,7 +180,8 @@ export const mockUsers: User[] = [
   { id: "u-ola", login: "Ola", passwordHash: "mock", createdAt: "2027-06-01T10:00:00+02:00" },
 ];
 
-const CREW_ID = "crew-mewy";
+export const mockCrewId = "crew-mewy";
+const CREW_ID = mockCrewId;
 
 export const mockMessages: OutboxMessage[] = [
   {
