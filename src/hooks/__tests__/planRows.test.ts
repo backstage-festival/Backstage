@@ -1,3 +1,4 @@
+import { PLAN_NOTE_HEIGHT } from "@/components/PlanNoteRow";
 import type { Concert, FestivalEvent, Stage } from "@/domain/entities/Event";
 
 import {
@@ -157,7 +158,13 @@ describe("buildPlanView", () => {
   });
 
   it("puts a write error under its card, or first when the card is not listed", () => {
-    const note = { concertId: hanna.id, label: "Nie zapisano", tone: "error", allowConflict: false } as const;
+    const note = {
+      concertId: hanna.id,
+      label: "Nie zapisano",
+      accessibilityLabel: "Nie zapisano",
+      tone: "error",
+      allowConflict: false,
+    } as const;
     const keys = buildPlanView(input({ note })).rows.map((row) => row.key);
     expect(keys.indexOf(`note-${hanna.id}`)).toBe(keys.indexOf(`perf-${hanna.id}`) + 1);
 
@@ -173,6 +180,19 @@ describe("row layouts", () => {
     // header 46, three conflicting cards 114 each, played 49
     expect(layouts.map((layout) => layout.length)).toEqual([46, 114, 114, 114, 49]);
     expect(layouts.map((layout) => layout.offset)).toEqual([0, 46, 160, 274, 388]);
+
+    const note = {
+      concertId: hanna.id,
+      label: "Kolizja · S1 od 01:30",
+      accessibilityLabel: "Kolizja z Mewy Nocą, scena 1 Główna, od 01:30",
+      tone: "warning",
+      allowConflict: true,
+    } as const;
+    const withNote = rowLayouts(buildPlanView(input({ note })).rows, planRowHeight);
+    // header, Wilga, Hanna, note (8 + 22 + 8 + 48 + 8 = 94), Mewy, played
+    expect(withNote.map((layout) => layout.length)).toEqual([46, 114, 114, PLAN_NOTE_HEIGHT, 114, 49]);
+    expect(PLAN_NOTE_HEIGHT).toBe(94);
+    expect(withNote[4]?.offset).toBe(46 + 114 + 114 + 94);
 
     const plain = rowLayouts(buildPlanView(input({ plannedIds: new Set() })).rows, planRowHeight);
     expect(plain.map((layout) => layout.length)).toEqual([46, 86, 86, 86, 49]);

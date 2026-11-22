@@ -229,12 +229,19 @@ export const strings = {
       noLineupBody: "Line-up dla tego festiwalu nie został pobrany. Pobierz go, póki masz zasięg.",
     },
     note: {
-      conflict: (artist: string) => `Kolizja z: ${artist}`,
+      /** TalkBack for the short card line „Kolizja · S2 od 02:00”. */
+      conflictA11y: (artist: string, stageNumber: number, stageName: string, time: string) =>
+        `Kolizja z ${artist}, scena ${stageNumber}${stageName ? ` ${stageName}` : ""}, od ${time}`,
       addAnyway: "Dodaj mimo to",
-      saveFailed: "Nie zapisano – spróbuj jeszcze raz",
-      removeFailed: "Nie usunięto – spróbuj jeszcze raz",
-      concertNotFound: "Nie ma tego koncertu w line-upie",
-      loadFailed: "Nie wczytano Twojego planu",
+      /** Short tag texts – one line at 100 % even on a 320 dp screen. */
+      saveFailed: "Nie zapisano zmiany",
+      removeFailed: "Nie usunięto z planu",
+      concertNotFound: "Brak koncertu w line-upie",
+      loadFailed: "Nie wczytano planu",
+      saveFailedA11y: "Nie zapisano zmiany w planie. Spróbuj jeszcze raz.",
+      removeFailedA11y: "Nie usunięto koncertu z planu. Spróbuj jeszcze raz.",
+      concertNotFoundA11y: "Nie ma tego koncertu w line-upie.",
+      loadFailedA11y: "Nie wczytano Twojego planu.",
       dismiss: "Zamknij komunikat",
     },
     a11y: {

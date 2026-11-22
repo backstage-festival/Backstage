@@ -2,8 +2,9 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 
-import { formatTime } from "@/components/mappers";
+import { FALLBACK_STAGE_ID, formatTime } from "@/components/mappers";
 import { stageNumber } from "@/components/PerformanceCard";
+import type { Stage } from "@/domain/entities/Event";
 import { mockPassSerial } from "@/mocks/mockData";
 import { scheduleStore, type ScheduleError, useLineupStore, useScheduleStore } from "@/store";
 import { strings } from "@/strings";
@@ -40,25 +41,49 @@ export interface PlanScreen extends PlanView {
   readonly openConcert: (concertId: string) => void;
 }
 
-/** Store error → note under the card (null = nothing to show). */
-export function toPlanNote(error: ScheduleError | null): PlanNote | null {
+const errorNote = (concertId: string | null, label: string, accessibilityLabel: string = label): PlanNote => ({
+  concertId,
+  label,
+  accessibilityLabel,
+  tone: "error",
+  allowConflict: false,
+});
+
+/**
+ * Store error → note under the card (null = nothing to show). A conflict uses
+ * the card format „Kolizja · S2 od 02:00”; the artist goes to TalkBack only.
+ */
+export function toPlanNote(error: ScheduleError | null, stages: readonly Stage[]): PlanNote | null {
   if (error === null) return null;
   switch (error.kind) {
-    case "conflict":
+    case "conflict": {
+      const other = error.conflicts[0];
+      if (other === undefined) {
+        return { ...errorNote(error.concertId, strings.status.conflict), tone: "warning", allowConflict: true };
+      }
+      const n = stageNumber(stageCodesOf(stages)[other.stageId] ?? FALLBACK_STAGE_ID);
+      const stageName = stages.find((stage) => stage.id === other.stageId)?.name ?? "";
+      const time = formatTime(other.startsAt);
       return {
         concertId: error.concertId,
-        label: strings.planScreen.note.conflict(error.conflicts[0]?.artist ?? ""),
+        label: strings.plan.conflictLine(n, time),
+        accessibilityLabel: strings.planScreen.note.conflictA11y(other.artist, n, stageName, time),
         tone: "warning",
         allowConflict: true,
       };
+    }
     case "saveFailed":
-      return { concertId: error.concertId, label: strings.planScreen.note.saveFailed, tone: "error", allowConflict: false };
+      return errorNote(error.concertId, strings.planScreen.note.saveFailed, strings.planScreen.note.saveFailedA11y);
     case "removeFailed":
-      return { concertId: error.concertId, label: strings.planScreen.note.removeFailed, tone: "error", allowConflict: false };
+      return errorNote(error.concertId, strings.planScreen.note.removeFailed, strings.planScreen.note.removeFailedA11y);
     case "concertNotFound":
-      return { concertId: error.concertId, label: strings.planScreen.note.concertNotFound, tone: "error", allowConflict: false };
+      return errorNote(
+        error.concertId,
+        strings.planScreen.note.concertNotFound,
+        strings.planScreen.note.concertNotFoundA11y,
+      );
     case "loadFailed":
-      return { concertId: null, label: strings.planScreen.note.loadFailed, tone: "error", allowConflict: false };
+      return errorNote(null, strings.planScreen.note.loadFailed, strings.planScreen.note.loadFailedA11y);
     case "notLoaded":
       // Transient: a tap before the plan loaded.
       return null;
@@ -95,7 +120,7 @@ export function usePlanScreen(filters: PlanFilters, playedExpanded: boolean): Pl
   const alert = useLeaveNowAlert(now);
   const accentSuppressed = alert !== null;
   const days = useMemo(() => festivalDays(event, concerts), [event, concerts]);
-  const note = useMemo(() => toPlanNote(lastError), [lastError]);
+  const note = useMemo(() => toPlanNote(lastError, stages), [lastError, stages]);
 
   const view = useMemo(
     () =>

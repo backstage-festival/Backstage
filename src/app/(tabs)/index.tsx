@@ -141,7 +141,15 @@ const NoteItem = memo(function NoteItem({
         : undefined,
     [note.allowConflict, concertId, onAddAnyway],
   );
-  return <PlanNoteRow label={note.label} tone={note.tone} {...(action ? { action } : null)} onDismiss={onDismiss} />;
+  return (
+    <PlanNoteRow
+      label={note.label}
+      accessibilityLabel={note.accessibilityLabel}
+      tone={note.tone}
+      {...(action ? { action } : null)}
+      onDismiss={onDismiss}
+    />
+  );
 });
 
 function PlanEmpty({ plan, onShowAll }: { plan: PlanScreenData; onShowAll: () => void }) {

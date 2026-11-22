@@ -120,7 +120,10 @@ export interface PlanFilters {
 
 export interface PlanNote {
   readonly concertId: string | null;
+  /** Short visible text, e.g. „Kolizja · S2 od 02:00” (C11 / S04 card format). */
   readonly label: string;
+  /** Full sentence for TalkBack, e.g. with the artist of the other concert. */
+  readonly accessibilityLabel: string;
   readonly tone: "warning" | "error";
   readonly allowConflict: boolean;
 }
