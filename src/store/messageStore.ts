@@ -150,14 +150,22 @@ export function createMessageStore(deps: MessageStoreDeps) {
      * its in-flight promise. `syncing` stays true for the whole chain.
      */
     const runSyncChain = async (startedIn: number): Promise<void> => {
-      set({ syncing: true });
       try {
+        set({ syncing: true });
         do {
           rerunRequested = false;
           await runSyncPass(startedIn);
         } while (rerunRequested && startedIn === epoch);
       } finally {
-        if (startedIn === epoch) set({ syncing: false });
+        // After reset() inFlightSync is already null or points to a newer
+        // chain, so an old chain leaves both it and the state alone.
+        if (startedIn === epoch) {
+          // Clear the chain in the same synchronous step as `syncing: false`
+          // (and before it, for listeners): a sync() from then on starts a
+          // new pass instead of joining a chain that will not run again.
+          inFlightSync = null;
+          set({ syncing: false });
+        }
       }
     };
 
@@ -291,6 +299,9 @@ export function createMessageStore(deps: MessageStoreDeps) {
           rerunRequested = true;
           return inFlightSync;
         }
+        // runSyncChain clears inFlightSync itself when the chain ends. This is
+        // only a safety net for a chain that failed before this assignment
+        // (a listener throwing synchronously); it never clears a newer chain.
         const current = runSyncChain(epoch).finally(() => {
           if (inFlightSync === current) inFlightSync = null;
         });

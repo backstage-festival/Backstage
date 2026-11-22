@@ -448,6 +448,51 @@ describe("messageStore", () => {
       expect(seen).toEqual([true, false]);
     });
 
+    describe("a request arriving just as the chain settles", () => {
+      it("starts a new pass for sync() called when syncing turns false", async () => {
+        const store = await setup();
+        const firstPass = deferred<SyncOutboxResult>();
+        deps.syncOutbox.execute.mockReturnValueOnce(firstPass.promise);
+        // E.g. a screen that syncs again as soon as the bar stops spinning.
+        let late: Promise<void> | null = null;
+        const unsubscribe = store.subscribe((state, previous) => {
+          if (previous.syncing && !state.syncing && late === null) {
+            late = store.getState().sync();
+          }
+        });
+
+        const chain = store.getState().sync();
+        firstPass.resolve(OFFLINE);
+        await chain;
+        unsubscribe();
+        await late;
+
+        expect(late).not.toBeNull();
+        expect(deps.syncOutbox.execute).toHaveBeenCalledTimes(2);
+        expect(store.getState().syncing).toBe(false);
+      });
+
+      // Microtasks counted from resolving the first pass: the early ones hit
+      // the running chain (rerun path), the later ones hit an idle store.
+      it.each([0, 1, 2, 3, 4, 5])(
+        "starts exactly one more pass for sync() %i microtasks after the pass resolves",
+        async (microtasks) => {
+          const store = await setup();
+          const firstPass = deferred<SyncOutboxResult>();
+          deps.syncOutbox.execute.mockReturnValueOnce(firstPass.promise);
+
+          const chain = store.getState().sync();
+          firstPass.resolve(OFFLINE);
+          for (let i = 0; i < microtasks; i += 1) await Promise.resolve();
+          const late = store.getState().sync();
+          await Promise.all([chain, late]);
+
+          expect(deps.syncOutbox.execute).toHaveBeenCalledTimes(2);
+          expect(store.getState().syncing).toBe(false);
+        },
+      );
+    });
+
     it("drops the requested pass when reset() happens mid-pass", async () => {
       const store = await setup([message("m1")]);
       const firstPass = deferred<SyncOutboxResult>();
