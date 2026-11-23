@@ -4,17 +4,20 @@ import type {
   Stop,
   TransitAlert,
 } from "../../../domain/entities/Transit";
+import type { WeatherForecast } from "../../../domain/entities/Weather";
 import { writeEventPackage } from "../../storage/repositories/SqliteEventRepository";
 import {
   writeAlerts,
   writeDepartures,
   writeStops,
 } from "../../storage/repositories/SqliteTransitRepository";
+import { writeWeather } from "../../storage/repositories/SqliteWeatherRepository";
 import {
   type DownloadProgress,
   EventPackageDownloader,
   type EventPackageSource,
   type TransitSource,
+  type WeatherSource,
 } from "../EventPackageDownloader";
 
 const mockTxn = {};
@@ -36,6 +39,10 @@ jest.mock("../../storage/repositories/SqliteTransitRepository", () => ({
   writeStops: jest.fn(),
   writeDepartures: jest.fn(),
   writeAlerts: jest.fn(),
+}));
+
+jest.mock("../../storage/repositories/SqliteWeatherRepository", () => ({
+  writeWeather: jest.fn(),
 }));
 
 const NOW = new Date("2027-07-01T10:00:00.000Z");
@@ -90,6 +97,15 @@ const alert: TransitAlert = {
   fetchedAt: "2027-07-01T09:59:00Z",
 };
 
+const forecast: WeatherForecast = {
+  eventId: "event-1",
+  forecastFor: "2027-07-02T18:00:00Z",
+  temperatureC: 21.5,
+  rainMm: 0,
+  summary: "clear",
+  fetchedAt: "2027-07-01T09:59:00Z",
+};
+
 function createSources() {
   const eventSource = {
     fetchEventPackage: jest.fn().mockResolvedValue(eventPackage),
@@ -99,7 +115,10 @@ function createSources() {
     fetchDepartures: jest.fn().mockResolvedValue([departure]),
     fetchAlerts: jest.fn().mockResolvedValue([alert]),
   } satisfies TransitSource;
-  return { eventSource, transitSource };
+  const weatherSource = {
+    fetchForecast: jest.fn().mockResolvedValue([forecast]),
+  } satisfies WeatherSource;
+  return { eventSource, transitSource, weatherSource };
 }
 
 describe("EventPackageDownloader", () => {
@@ -108,10 +127,11 @@ describe("EventPackageDownloader", () => {
   });
 
   it("saves everything in one transaction and sets downloadedAt", async () => {
-    const { eventSource, transitSource } = createSources();
+    const { eventSource, transitSource, weatherSource } = createSources();
     const downloader = new EventPackageDownloader(
       eventSource,
       transitSource,
+      weatherSource,
       () => NOW,
     );
 
@@ -129,10 +149,11 @@ describe("EventPackageDownloader", () => {
   });
 
   it("reports progress for every step in order", async () => {
-    const { eventSource, transitSource } = createSources();
+    const { eventSource, transitSource, weatherSource } = createSources();
     const downloader = new EventPackageDownloader(
       eventSource,
       transitSource,
+      weatherSource,
       () => NOW,
     );
     const progress: DownloadProgress[] = [];
@@ -140,20 +161,22 @@ describe("EventPackageDownloader", () => {
     await downloader.download("event-1", (p) => progress.push(p));
 
     expect(progress).toEqual([
-      { step: "event", completed: 1, total: 5 },
-      { step: "stops", completed: 2, total: 5 },
-      { step: "departures", completed: 3, total: 5 },
-      { step: "alerts", completed: 4, total: 5 },
-      { step: "saving", completed: 5, total: 5 },
+      { step: "event", completed: 1, total: 6 },
+      { step: "stops", completed: 2, total: 6 },
+      { step: "departures", completed: 3, total: 6 },
+      { step: "alerts", completed: 4, total: 6 },
+      { step: "weather", completed: 5, total: 6 },
+      { step: "saving", completed: 6, total: 6 },
     ]);
   });
 
   it("saves nothing when a download fails halfway", async () => {
-    const { eventSource, transitSource } = createSources();
+    const { eventSource, transitSource, weatherSource } = createSources();
     transitSource.fetchAlerts.mockRejectedValue(new Error("offline"));
     const downloader = new EventPackageDownloader(
       eventSource,
       transitSource,
+      weatherSource,
       () => NOW,
     );
 
@@ -164,10 +187,11 @@ describe("EventPackageDownloader", () => {
   });
 
   it("downloads departures only for stops near the stages", async () => {
-    const { eventSource, transitSource } = createSources();
+    const { eventSource, transitSource, weatherSource } = createSources();
     const downloader = new EventPackageDownloader(
       eventSource,
       transitSource,
+      weatherSource,
       () => NOW,
     );
 
@@ -176,5 +200,42 @@ describe("EventPackageDownloader", () => {
     expect(transitSource.fetchDepartures).toHaveBeenCalledTimes(1);
     expect(transitSource.fetchDepartures).toHaveBeenCalledWith(nearStop.id);
     expect(writeDepartures).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves the weather forecast for the first stage", async () => {
+    const { eventSource, transitSource, weatherSource } = createSources();
+    const downloader = new EventPackageDownloader(
+      eventSource,
+      transitSource,
+      weatherSource,
+      () => NOW,
+    );
+
+    await downloader.download("event-1");
+
+    expect(weatherSource.fetchForecast).toHaveBeenCalledWith(
+      "event-1",
+      eventPackage.stages[0]?.location,
+    );
+    expect(writeWeather).toHaveBeenCalledWith(mockTxn, "event-1", [forecast]);
+  });
+
+  it("skips the weather when the event has no stages", async () => {
+    const { eventSource, transitSource, weatherSource } = createSources();
+    eventSource.fetchEventPackage.mockResolvedValue({
+      ...eventPackage,
+      stages: [],
+    });
+    const downloader = new EventPackageDownloader(
+      eventSource,
+      transitSource,
+      weatherSource,
+      () => NOW,
+    );
+
+    await downloader.download("event-1");
+
+    expect(weatherSource.fetchForecast).not.toHaveBeenCalled();
+    expect(writeWeather).toHaveBeenCalledWith(mockTxn, "event-1", []);
   });
 });

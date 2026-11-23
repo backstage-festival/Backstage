@@ -1,9 +1,11 @@
+import type { Coordinates } from "../../domain/entities/common";
 import type { EventPackage, Stage } from "../../domain/entities/Event";
 import type {
   Departure,
   Stop,
   TransitAlert,
 } from "../../domain/entities/Transit";
+import type { WeatherForecast } from "../../domain/entities/Weather";
 import { calculateDistanceInMeters } from "../../domain/utils/distanceCalculator";
 import { getDb } from "../storage/database";
 import { writeEventPackage } from "../storage/repositories/SqliteEventRepository";
@@ -12,12 +14,14 @@ import {
   writeDepartures,
   writeStops,
 } from "../storage/repositories/SqliteTransitRepository";
+import { writeWeather } from "../storage/repositories/SqliteWeatherRepository";
 
 export type DownloadStep =
   | "event"
   | "stops"
   | "departures"
   | "alerts"
+  | "weather"
   | "saving";
 
 export interface DownloadProgress {
@@ -38,9 +42,16 @@ export interface TransitSource {
   fetchAlerts(): Promise<readonly TransitAlert[]>;
 }
 
+export interface WeatherSource {
+  fetchForecast(
+    eventId: string,
+    location: Coordinates,
+  ): Promise<readonly WeatherForecast[]>;
+}
+
 export const STOP_RADIUS_METERS = 1000;
 export const MAX_STOPS = 10;
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 interface StopDepartures {
   readonly stopId: number;
@@ -51,6 +62,7 @@ export class EventPackageDownloader {
   constructor(
     private readonly eventSource: EventPackageSource,
     private readonly transitSource: TransitSource,
+    private readonly weatherSource: WeatherSource,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
@@ -75,6 +87,12 @@ export class EventPackageDownloader {
     const alerts = await this.transitSource.fetchAlerts();
     onProgress?.({ step: "alerts", completed: 4, total: TOTAL_STEPS });
 
+    const stage = eventPackage.stages[0];
+    const forecasts = stage
+      ? await this.weatherSource.fetchForecast(eventId, stage.location)
+      : [];
+    onProgress?.({ step: "weather", completed: 5, total: TOTAL_STEPS });
+
     const downloadedPackage: EventPackage = {
       ...eventPackage,
       event: {
@@ -86,13 +104,14 @@ export class EventPackageDownloader {
     const db = await getDb();
     await db.withExclusiveTransactionAsync(async (txn) => {
       await writeEventPackage(txn, downloadedPackage);
+      await writeWeather(txn, eventId, forecasts);
       await writeStops(txn, stops);
       for (const { stopId, departures } of departuresByStop) {
         await writeDepartures(txn, stopId, departures);
       }
       await writeAlerts(txn, alerts);
     });
-    onProgress?.({ step: "saving", completed: 5, total: TOTAL_STEPS });
+    onProgress?.({ step: "saving", completed: 6, total: TOTAL_STEPS });
   }
 }
 
