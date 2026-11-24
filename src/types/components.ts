@@ -284,3 +284,29 @@ export interface LeaveNowAlertProps {
   onMute: () => void;
   testID?: string;
 }
+
+/* ------------------------------------------------------------------ */
+/* S10 · SettingSwitch + RadioGroup                                     */
+/* ------------------------------------------------------------------ */
+
+export interface SettingSwitchProps {
+  title: string; // „Wysoki kontrast”
+  description?: string;
+  value: boolean;
+  /** Whole row is the touch target and one TalkBack stop (role switch). */
+  onValueChange: (value: boolean) => void;
+  testID?: string;
+}
+
+export interface RadioOption<T extends string> {
+  value: T;
+  label: string;
+  description?: string;
+}
+
+export interface RadioGroupProps<T extends string> {
+  groupLabel: string;
+  options: readonly RadioOption<T>[];
+  value: T;
+  onChange: (value: T) => void;
+}

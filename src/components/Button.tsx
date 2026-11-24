@@ -117,6 +117,8 @@ export function Button({
   const colors = buttonColors(theme, variant, surface, disabled);
   const iconName = icon ?? (variant === "destructive" ? "close" : undefined);
   const fill = width === "fill";
+  // × of a destructive button and the „back” arrow sit before the label.
+  const leading = variant === "destructive" || iconName === "arrowLeft";
 
   return (
     <View style={fill ? styles.fill : styles.hug}>
@@ -143,7 +145,7 @@ export function Button({
               },
             ]}
           >
-            {variant === "destructive" && iconName ? (
+            {leading && iconName ? (
               <Icon name={iconName} size={LABEL_ICON_SIZE} color={colors.foreground} />
             ) : null}
             <Text
@@ -152,7 +154,7 @@ export function Button({
             >
               {label}
             </Text>
-            {variant !== "destructive" && iconName ? (
+            {!leading && iconName ? (
               <Icon name={iconName} size={LABEL_ICON_SIZE} color={colors.foreground} />
             ) : null}
           </Animated.View>
