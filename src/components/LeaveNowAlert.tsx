@@ -8,6 +8,7 @@ import type { LeaveNowAlertProps } from "@/types/components";
 
 import { Button } from "./Button";
 import { Icon } from "./Icon";
+import { useReduceMotion } from "./motion";
 
 /** C02 padding 6 · 6 · 12 · 38 (left leaves room for the slot); 200 %: 14 · 12 · 14 · 38. */
 const PAD = { top: 6, right: 6, bottom: 12, left: 38 } as const;
@@ -21,6 +22,8 @@ const CONTENT_GAP = spacing.s1;
 const BUTTONS_MARGIN = 6;
 const INK_BORDER = 2;
 const TAG_PAD = { vertical: 1, horizontal: 4 } as const;
+/** Level 0 button row: „Prowadź” takes (almost) all spare room while the two share a line. */
+const GUIDE_GROW = 100;
 
 function AlertAction({
   label,
@@ -51,7 +54,11 @@ function AlertAction({
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={hint}
       accessibilityState={{ disabled }}
-      style={[styles.action, { minHeight: size.button[level], borderColor: color }, level > 0 ? styles.actionWide : null]}
+      style={[
+        styles.action,
+        { minHeight: size.button[level], borderColor: color },
+        level > 0 ? styles.actionWide : styles.actionInRow,
+      ]}
     >
       {icon ? <Icon name={icon} size={size.icon} color={color} /> : null}
       <Text allowFontScaling={false} style={[textStyle("button", level), { color }]}>
@@ -62,8 +69,9 @@ function AlertAction({
 }
 
 /**
- * C02 · LeaveNowAlert – „Wyjdź teraz” at the top of Plan. Static double frame
- * for now (the pulse comes with #34). The container is not a TalkBack stop
+ * C02 · LeaveNowAlert – „Wyjdź teraz” at the top of Plan. With reduced motion
+ * the alert gets the static double frame instead of the pulse (S10: „Alert nie
+ * pulsuje, tylko ma podwójną ramkę”); otherwise no frame. TODO(#34): pulse. The container is not a TalkBack stop
  * of its own: children are read in order eyebrow → title → meta → buttons.
  */
 // `kind` (stage / transit) changes only the copy, which the caller builds.
@@ -77,11 +85,13 @@ export function LeaveNowAlert({
   onGuide,
   onSnooze,
   onMute,
+  preview = false,
   testID,
 }: LeaveNowAlertProps) {
   const { theme, level } = useTheme();
   const c = theme.colors;
   const muted = mode === "muted";
+  const reduceMotion = useReduceMotion();
 
   useEffect(() => {
     // An empty announcement (S10 live preview) is never read.
@@ -110,94 +120,106 @@ export function LeaveNowAlert({
   const snoozeLabel = wide ? strings.leaveNow.snoozeLong(snoozeMinutes) : strings.leaveNow.snooze(snoozeMinutes);
   const snoozeHint = canSnooze ? strings.leaveNow.a11y.snoozeHint : strings.leaveNow.a11y.snoozeDisabled;
 
+  const card = (
+    <View
+      accessible={false}
+      accessibilityLiveRegion="polite"
+      style={[
+        styles.card,
+        {
+          backgroundColor: c.accent,
+          paddingTop: pad.top,
+          paddingRight: pad.right,
+          paddingBottom: pad.bottom,
+          paddingLeft: pad.left,
+        },
+      ]}
+    >
+      <View style={[styles.slot, { backgroundColor: c.textOnAccent }]} />
+
+      <View style={styles.topRow}>
+        <Text allowFontScaling={false} style={[textStyle("eyebrow", level), styles.shrink, { color: c.textOnAccent }]}>
+          {eyebrow}
+        </Text>
+        {wide || preview ? null : (
+          <Pressable
+            onPress={onMute}
+            accessibilityRole="button"
+            accessibilityLabel={strings.leaveNow.a11y.mute}
+            accessibilityHint={strings.leaveNow.a11y.muteHint}
+            style={styles.muteIcon}
+          >
+            <Icon name="bellOff" size={size.icon} color={c.textOnAccent} />
+          </Pressable>
+        )}
+      </View>
+
+      {mode === "vibrationOnly" ? (
+        <View style={[styles.tag, { borderColor: c.textOnAccent }]}>
+          <Text allowFontScaling={false} style={[textStyle("tag", level), { color: c.textOnAccent }]}>
+            {strings.leaveNow.vibrationOnly}
+          </Text>
+        </View>
+      ) : null}
+
+      <Text allowFontScaling={false} accessibilityRole="header" style={[textStyle("alertTitle", level), { color: c.textOnAccent }]}>
+        {strings.leaveNow.title}
+      </Text>
+      <Text allowFontScaling={false} style={[textStyle("alertMeta", level), { color: c.textOnAccent }]}>
+        {meta}
+      </Text>
+
+      {/*
+        Level 0: side by side while both labels fit, otherwise „Za n min” wraps
+        under „Prowadź” (no word is broken). Both keep their natural width as the
+        flex basis; the 100 : 1 grow ratio gives the spare room to „Prowadź” in
+        one line, and lets the wrapped „Za n min” fill its own line.
+      */}
+      <View style={[styles.buttons, wide ? styles.buttonsColumn : null]}>
+        <View style={wide ? null : styles.guide}>
+          <Button
+            label={strings.leaveNow.guide}
+            variant="primary"
+            surface="accent"
+            icon="arrowRight"
+            disabled={false}
+            width="fill"
+            accessibilityHint={strings.leaveNow.a11y.guideHint}
+            onPress={onGuide}
+          />
+        </View>
+        <AlertAction
+          label={snoozeLabel}
+          accessibilityLabel={strings.leaveNow.a11y.snooze(snoozeMinutes)}
+          hint={snoozeHint}
+          disabled={!canSnooze}
+          onPress={onSnooze}
+          theme={theme}
+          level={level}
+        />
+        {wide && !preview ? (
+          <AlertAction
+            label={strings.leaveNow.mute}
+            accessibilityLabel={strings.leaveNow.a11y.mute}
+            hint={strings.leaveNow.a11y.muteHint}
+            disabled={false}
+            icon="bellOff"
+            onPress={onMute}
+            theme={theme}
+            level={level}
+          />
+        ) : null}
+      </View>
+    </View>
+  );
+
+  if (!reduceMotion) {
+    // TODO(#34): pulse (scale + opacity, useNativeDriver: true) in place of the frame.
+    return <View testID={testID}>{card}</View>;
+  }
   return (
     <View testID={testID} style={[styles.frameOuter, { borderColor: c.textPrimary }]}>
-      <View style={[styles.frameInner, { borderColor: c.background }]}>
-        <View
-          accessible={false}
-          accessibilityLiveRegion="polite"
-          style={[
-            styles.card,
-            {
-              backgroundColor: c.accent,
-              paddingTop: pad.top,
-              paddingRight: pad.right,
-              paddingBottom: pad.bottom,
-              paddingLeft: pad.left,
-            },
-          ]}
-        >
-          <View style={[styles.slot, { backgroundColor: c.textOnAccent }]} />
-
-          <View style={styles.topRow}>
-            <Text allowFontScaling={false} style={[textStyle("eyebrow", level), styles.shrink, { color: c.textOnAccent }]}>
-              {eyebrow}
-            </Text>
-            {wide ? null : (
-              <Pressable
-                onPress={onMute}
-                accessibilityRole="button"
-                accessibilityLabel={strings.leaveNow.a11y.mute}
-                accessibilityHint={strings.leaveNow.a11y.muteHint}
-                style={styles.muteIcon}
-              >
-                <Icon name="bellOff" size={size.icon} color={c.textOnAccent} />
-              </Pressable>
-            )}
-          </View>
-
-          {mode === "vibrationOnly" ? (
-            <View style={[styles.tag, { borderColor: c.textOnAccent }]}>
-              <Text allowFontScaling={false} style={[textStyle("tag", level), { color: c.textOnAccent }]}>
-                {strings.leaveNow.vibrationOnly}
-              </Text>
-            </View>
-          ) : null}
-
-          <Text allowFontScaling={false} accessibilityRole="header" style={[textStyle("alertTitle", level), { color: c.textOnAccent }]}>
-            {strings.leaveNow.title}
-          </Text>
-          <Text allowFontScaling={false} style={[textStyle("alertMeta", level), { color: c.textOnAccent }]}>
-            {meta}
-          </Text>
-
-          <View style={[styles.buttons, wide ? styles.buttonsColumn : null]}>
-            <View style={wide ? null : styles.guide}>
-              <Button
-                label={strings.leaveNow.guide}
-                variant="primary"
-                surface="accent"
-                icon="arrowRight"
-                disabled={false}
-                width="fill"
-                accessibilityHint={strings.leaveNow.a11y.guideHint}
-                onPress={onGuide}
-              />
-            </View>
-            <AlertAction
-              label={snoozeLabel}
-              accessibilityLabel={strings.leaveNow.a11y.snooze(snoozeMinutes)}
-              hint={snoozeHint}
-              disabled={!canSnooze}
-              onPress={onSnooze}
-              theme={theme}
-              level={level}
-            />
-            {wide ? (
-              <AlertAction
-                label={strings.leaveNow.mute}
-                accessibilityLabel={strings.leaveNow.a11y.mute}
-                hint={strings.leaveNow.a11y.muteHint}
-                disabled={false}
-                icon="bellOff"
-                onPress={onMute}
-                theme={theme}
-                level={level}
-              />
-            ) : null}
-          </View>
-        </View>
-      </View>
+      <View style={[styles.frameInner, { borderColor: c.background }]}>{card}</View>
     </View>
   );
 }
@@ -224,9 +246,10 @@ const styles = StyleSheet.create({
     paddingVertical: TAG_PAD.vertical,
     paddingHorizontal: TAG_PAD.horizontal,
   },
-  buttons: { flexDirection: "row", gap: spacing.s2, marginTop: BUTTONS_MARGIN, marginRight: spacing.s1 },
-  buttonsColumn: { flexDirection: "column" },
-  guide: { flex: 1 },
+  buttons: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s2, marginTop: BUTTONS_MARGIN, marginRight: spacing.s1 },
+  buttonsColumn: { flexDirection: "column", flexWrap: "nowrap" },
+  guide: { flexGrow: GUIDE_GROW, flexShrink: 1, flexBasis: "auto" },
+  actionInRow: { flexGrow: 1, flexShrink: 1, flexBasis: "auto" },
   action: {
     minWidth: size.touchMin,
     borderWidth: INK_BORDER,
