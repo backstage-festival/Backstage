@@ -310,3 +310,65 @@ export interface RadioGroupProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
 }
+
+/* ------------------------------------------------------------------ */
+/* C08 · SavedPlaceItem                                                 */
+/* ------------------------------------------------------------------ */
+
+export type SavedPlaceVariant = "tent" | "row";
+
+export interface SavedPlaceItemProps {
+  id: string;
+  /** tent = laminate pass at the top of S07; row = list row. */
+  variant: SavedPlaceVariant;
+  label: string; // „Namiot”
+  /** Opis: the place type for now – SavedPlace has no description field. */
+  description: string; // „Punkt zbiórki”
+  icon: IconName;
+  distance: string | null; // „240 m”; null = no GPS fix yet
+  walk: string | null; // „3 min”
+  savedAt: string; // „Pt 13:20”
+  accessibilityLabel: string;
+  /** Write in flight – dimmed, menu and actions are blocked. */
+  pending: boolean;
+  onPress: (id: string) => void; // row: whole row opens guidance (07b)
+  onGuide: (id: string) => void; // tent: „Prowadź” button
+  onMore: (id: string) => void; // menu: rename / delete
+  onRename: (id: string) => void; // TalkBack action
+  onDelete: (id: string) => void; // TalkBack action (asks first)
+  testID?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* C06 · CompassArrow                                                   */
+/* ------------------------------------------------------------------ */
+
+export type CompassState = "guiding" | "near" | "calibrating" | "noHeading";
+
+export interface CompassArrowProps {
+  state: CompassState;
+  /** Arrow angle already relative to the top of the phone, 0–360° clockwise. */
+  bearingDeg: number;
+  distance: string; // „240 m”
+  walk: string | null; // „3 min”
+  accuracy: string; // „±8 m”
+  targetName: string;
+  /** Throttled label (C06: every 10 s or on a > 30° turn), polite live region. */
+  accessibilityLabel: string;
+  testID?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* ConfirmDialog                                                        */
+/* ------------------------------------------------------------------ */
+
+export interface ConfirmDialogProps {
+  visible: boolean;
+  title: string;
+  body: string;
+  /** Safe choice – gets the default TalkBack focus („Zostaw”). */
+  cancelLabel: string;
+  confirmLabel: string; // destructive
+  onCancel: () => void;
+  onConfirm: () => void;
+}

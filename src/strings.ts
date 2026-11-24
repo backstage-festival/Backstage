@@ -399,4 +399,127 @@ export const strings = {
       preview: "Podgląd: tak wygląda plan z wybranymi ustawieniami",
     },
   },
+
+  /** S07 · Namiot + 07b prowadzenie (C06, C08, dialog) */
+  tent: {
+    title: "Namiot",
+    count: (n: number) => `Zapisane miejsca · ${n}`,
+    otherPlaces: "Inne miejsca",
+    savePosition: "Zapisz moją pozycję",
+    gpsMeta: (accuracy: string) => `GPS ${accuracy} · działa bez zasięgu`,
+    accuracy: (m: number) => `±${m} m`,
+    defaultTentLabel: "Namiot",
+    defaultPlaceLabel: (n: number) => `Miejsce ${n}`,
+    type: {
+      tent: "Namiot",
+      meeting_point: "Punkt zbiórki",
+      parking: "Parking",
+      other: "Miejsce",
+    },
+    /** „Pt 13:20” */
+    savedDay: (weekday: string, time: string) => `${weekday} ${time}`,
+    savedAt: (when: string) => `Zapisano ${when}`,
+    /** C08 pass band: „Twój namiot · zapisano Pt 13:20” */
+    passBand: (when: string) => `Twój namiot · zapisano ${when}`,
+    guideButton: "Prowadź",
+    meters: (m: number) => `${m} m`,
+    kilometers: (km: string) => `${km} km`,
+    walk: (minutes: number) => `${minutes} min`,
+    distanceWalk: (distance: string, walk: string) => `${distance} · ${walk}`,
+    noDistance: "–",
+    locating: "Szukam pozycji…",
+    saving: "Zapisuję…",
+    menu: {
+      title: (label: string) => label,
+      rename: "Zmień nazwę",
+      delete: "Usuń",
+      cancel: "Anuluj",
+      nameLabel: "Nazwa miejsca",
+      save: "Zapisz",
+    },
+    confirm: {
+      title: (label: string) => `Usunąć ${label}?`,
+      body: "Bez zasięgu nie da się go odtworzyć. Kompas przestanie do niego prowadzić.",
+      keep: "Zostaw",
+      delete: "Usuń",
+    },
+    empty: {
+      title: "Nie masz zapisanych miejsc",
+      body: "Stań przy namiocie i naciśnij „Zapisz moją pozycję”. Kompas zaprowadzi Cię z powrotem, także bez zasięgu.",
+    },
+    noLocation: {
+      eyebrow: "Brak sygnału GPS",
+      title: "Nie widzę twojej pozycji",
+      body: "Wyjdź spod dachu i spróbuj ponownie. Zapisane miejsca zostają.",
+      bodyPermission: "Aplikacja nie ma dostępu do lokalizacji. Włącz go w ustawieniach telefonu.",
+      retry: "Spróbuj ponownie",
+      openSettings: "Otwórz ustawienia",
+    },
+    note: {
+      saveFailed: "Nie zapisano miejsca",
+      removeFailed: "Nie usunięto miejsca",
+      renameFailed: "Nie zmieniono nazwy",
+      invalidLabel: "Nazwa: od 1 do 40 znaków",
+      loadFailed: "Nie wczytano miejsc",
+      saveFailedA11y: "Nie zapisano miejsca. Spróbuj jeszcze raz.",
+      removeFailedA11y: "Nie usunięto miejsca. Wróciło na listę.",
+      renameFailedA11y: "Nie zmieniono nazwy miejsca. Przywrócono poprzednią.",
+      invalidLabelA11y: "Nazwa miejsca musi mieć od 1 do 40 znaków.",
+      loadFailedA11y: "Nie wczytano zapisanych miejsc.",
+      noLocationA11y: "Nie widzę twojej pozycji. Miejsce nie zostało zapisane.",
+    },
+    guide: {
+      back: "Miejsca",
+      eyebrow: "Prowadzenie do",
+      showOnMap: "Pokaż na mapie",
+      holdFlat: "Trzymaj telefon płasko · kompas OK",
+      notFoundEyebrow: "Prowadzenie",
+      notFoundTitle: "Nie ma takiego miejsca",
+      notFoundBody: "Miejsce zostało usunięte. Wróć do listy i wybierz inne.",
+    },
+    /** C06 · CompassArrow – texts inside and under the ring. */
+    compass: {
+      north: "N",
+      near: (distance: string) => `Blisko · ${distance}`,
+      nearBody: "Poniżej 20 m strzałka znika, rozglądaj się",
+      calibrating: "Kalibracja",
+      calibratingBody: "Zakreśl telefonem ósemkę w powietrzu",
+      noHeading: "Brak kompasu",
+      noHeadingBody: "Kierunek pokażemy na mapie",
+      meta: (description: string, accuracy: string) => `${description} · ${accuracy}`,
+    },
+    a11y: {
+      metersSpoken: (m: number) => `${m} ${plural(m, "metr", "metry", "metrów")}`,
+      kilometersSpoken: (km: string) => `${km} kilometra`,
+      minutesSpoken: (minutes: number) => `${minutes} ${minutesWord(minutes)}`,
+      walkSpoken: (minutes: number) => `około ${minutes} ${minutesWord(minutes)} pieszo`,
+      /** „Namiot, Punkt zbiórki, 240 metrów, około 3 minuty pieszo” */
+      row: (label: string, type: string, distance: string | null) =>
+        `${label}, ${type}` + (distance === null ? "" : `, ${distance}`),
+      /** C08: „Twój namiot, Namiot. Namiot. 240 metrów, 3 minuty.” */
+      pass: (label: string, description: string, distance: string | null) =>
+        `Twój namiot, ${label}. ${description}.` + (distance === null ? "" : ` ${distance}.`),
+      /** Row: „…, zapisuję”; pass (ends with a sentence): „… Zapisuję.” */
+      withSaving: (label: string, sentence: boolean) => (sentence ? `${label} Zapisuję.` : `${label}, zapisuję`),
+      rowHint: "Otwiera prowadzenie kompasem",
+      more: (label: string) => `Więcej: ${label}`,
+      moreHint: "Zmiana nazwy albo usunięcie",
+      deleteAction: "Usuń",
+      renameAction: "Zmień nazwę",
+      saveHint: "Zapisuje miejsce, w którym stoisz. Działa bez zasięgu.",
+      guideHint: "Otwiera prowadzenie kompasem",
+      /** C06 */
+      straight: "prosto",
+      turn: (side: "right" | "left", degrees: number) =>
+        `skręć w ${side === "right" ? "prawo" : "lewo"} o ${degrees} ${plural(degrees, "stopień", "stopnie", "stopni")}`,
+      compassGuiding: (label: string, distance: string, direction: string) => `${label}: ${distance}, ${direction}`,
+      compassNear: (distance: string) => `Jesteś blisko, ${distance}. Rozglądaj się.`,
+      compassCalibrating: "Kalibracja kompasu. Zakreśl telefonem ósemkę.",
+      compassNoHeading: (target: string | null) =>
+        "Brak kompasu. Kierunek pokażemy na mapie." + (target === null ? "" : ` ${target}.`),
+      compassTarget: (label: string, distance: string) => `${label}: ${distance}`,
+      back: "Wróć do listy miejsc",
+      mapHint: "Otwiera mapę festiwalu",
+    },
+  },
 } as const;
