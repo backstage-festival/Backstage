@@ -46,14 +46,27 @@ export const strings = {
     now: "Teraz",
   },
 
-  /** TEMP: labels used only by placeholder screens until the screen tasks. */
-  placeholder: {
-    prepare: "Przygotuj się",
-    downloadMap: "Pobierz mapę",
-    downloadMapDisabled: "Brak zasięgu – pobierzesz, gdy wróci sieć.",
-    variant200: "Tekst 200 %",
-    variantPatterns: "Wzory zamiast koloru",
-    variantHighContrast: "Wysoki kontrast",
+  /** S05 · Concert card (E05a–b) */
+  concert: {
+    stage: (stageNumber: number, stageName: string) => `S${stageNumber} · Scena ${stageName}`,
+    time: (start: string, end: string) => `${start}–${end}`,
+    checkIn: "Zamelduj się",
+    checkInDone: "Zameldowano",
+    tooFar: (meters: number) => `Za daleko · ${meters} m do sceny`,
+    checkInPending: "Meldowanie…",
+    addToPlan: "Dodaj do planu",
+    inPlan: "W planie",
+    removeFromPlan: "Usuń z planu",
+    back: "Wróć",
+    closed: "Meldowanie zamknięte",
+    noLocation: "Brak lokalizacji",
+    error: "Nie udało się zameldować",
+    a11y: {
+      card: (artist: string, stageName: string, start: string, end: string) =>
+        `${artist}, Scena ${stageName}, ${start} do ${end}`,
+      checkInHint: "Wymaga obecności w promieniu 50 metrów od sceny",
+      tooFarAnnounce: (meters: number) => `Za daleko od sceny, ${meters} metrów`,
+    },
   },
 
   /** C01 · PerformanceCard + NowPass */
