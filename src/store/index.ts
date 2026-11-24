@@ -7,6 +7,7 @@ import {
   mockMessageDeps,
   mockNetworkService,
   mockPlacesDeps,
+  mockPrepareDeps,
   mockScheduleDeps,
   mockSettingsDeps,
   mockTransitDeps,
@@ -21,6 +22,7 @@ import { createPlacesStore, type PlacesState } from "./placesStore";
 import { resetOnLogout } from "./resetOnLogout";
 import { createScheduleStore, type ScheduleState } from "./scheduleStore";
 import { createSettingsStore, type SettingsState } from "./settingsStore";
+import { createPrepareStore, type PrepareState } from "./prepareStore";
 import { createTransitStore, type TransitState } from "./transitStore";
 
 // TEMP: mock deps until #32 (DI)
@@ -41,6 +43,7 @@ export const connectionStore = createConnectionStore({
 // Event and transit data, not user data: left out of resetOnLogout on purpose.
 export const lineupStore = createLineupStore(mockLineupDeps);
 export const transitStore = createTransitStore(mockTransitDeps);
+export const prepareStore = createPrepareStore(mockPrepareDeps);
 
 // App-lifetime subscription: logout clears the user-scoped stores.
 resetOnLogout(authStore, [scheduleStore, messageStore, checkInStore, settingsStore, placesStore]);
@@ -81,6 +84,10 @@ export function useSettingsStore<T>(selector: (state: SettingsState) => T): T {
 
 export function useTransitStore<T>(selector: (state: TransitState) => T): T {
   return useStore(transitStore, selector);
+}
+
+export function usePrepareStore<T>(selector: (state: PrepareState) => T): T {
+  return useStore(prepareStore, selector);
 }
 
 export { selectIsSignedIn } from "./authStore";

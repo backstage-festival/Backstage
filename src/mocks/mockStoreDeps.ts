@@ -392,3 +392,19 @@ export const mockPlacesDeps: PlacesStoreDeps = {
   removePlace: (placeId) => savedPlaceRepository.remove(placeId),
   renamePlace: (place) => savedPlaceRepository.save(place),
 };
+
+// ---------------------------------------------------------------------------
+// Prepare
+// ---------------------------------------------------------------------------
+
+export const mockPrepareDeps: import("@/store/prepareStore").PrepareStoreDeps = {
+  download: async (_eventId, onProgress) => {
+    const steps = [
+      "event", "stops", "departures", "alerts", "weather", "saving",
+    ] as const;
+    for (let i = 0; i < steps.length; i++) {
+      await delay();
+      onProgress?.({ step: steps[i]!, completed: i + 1, total: steps.length });
+    }
+  },
+};

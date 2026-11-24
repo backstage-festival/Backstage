@@ -46,14 +46,32 @@ export const strings = {
     now: "Teraz",
   },
 
-  /** TEMP: labels used only by placeholder screens until the screen tasks. */
-  placeholder: {
-    prepare: "Przygotuj się",
-    downloadMap: "Pobierz mapę",
-    downloadMapDisabled: "Brak zasięgu – pobierzesz, gdy wróci sieć.",
-    variant200: "Tekst 200 %",
-    variantPatterns: "Wzory zamiast koloru",
-    variantHighContrast: "Wysoki kontrast",
+  /** S02 · Prepare screen (E02a–c, E10d) */
+  prepare: {
+    title: "Przygotuj się",
+    startBody: "Line-up, rozkłady odjazdów i pogoda. Potem wszystko działa bez zasięgu.",
+    download: "Pobierz",
+    downloading: "Pobieranie…",
+    done: "Gotowe!",
+    doneBody: "Dane pobrane. Aplikacja działa w trybie offline.",
+    close: "Zamknij",
+    retry: "Spróbuj ponownie",
+    errorTitle: "Nie udało się pobrać",
+    errorBody: "Sprawdź zasięg i spróbuj ponownie.",
+    steps: {
+      event: "Line-up i miejsca",
+      stops: "Przystanki",
+      departures: "Odjazdy",
+      alerts: "Utrudnienia",
+      weather: "Pogoda",
+      saving: "Zapisywanie",
+    } as Record<string, string>,
+    a11y: {
+      progress: (step: string, done: number, total: number) =>
+        `${step}: ${done} z ${total}`,
+      downloadHint: "Pobiera dane wydarzenia. Wymaga zasięgu.",
+      doneAnnounce: "Dane pobrane. Aplikacja gotowa do pracy offline.",
+    },
   },
 
   /** C01 · PerformanceCard + NowPass */
