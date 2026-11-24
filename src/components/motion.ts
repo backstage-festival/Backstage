@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing } from "react-native";
 
+import { useTheme } from "@/theme/ThemeProvider";
 import { motion } from "@/theme/theme";
 
-/**
- * System „reduce motion” (Android: remove animations). Components use it to
- * jump to the end state instead of animating (H03, column „Ograniczony ruch”).
- */
-export function useReduceMotion(): boolean {
+/** System „reduce motion” (Android: remove animations), updated live. */
+export function useSystemReduceMotion(): boolean {
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
@@ -25,6 +23,17 @@ export function useReduceMotion(): boolean {
   }, []);
 
   return reduced;
+}
+
+/**
+ * „Reduce motion”. Components use it to jump to the end state instead of
+ * animating (H03, column „Ograniczony ruch”). The app setting (S10) wins;
+ * null = system setting.
+ */
+export function useReduceMotion(): boolean {
+  const { reduceMotion: override } = useTheme();
+  const systemReduced = useSystemReduceMotion();
+  return override ?? systemReduced;
 }
 
 /**
