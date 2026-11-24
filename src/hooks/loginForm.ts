@@ -30,6 +30,14 @@ export function passwordChecks(password: string): PasswordChecks {
   };
 }
 
+/** Hint labels of the unmet rules, in hint order („min. 8 znaków”, „cyfra”). */
+export function missingChecks(checks: PasswordChecks): string[] {
+  const missing: string[] = [];
+  if (!checks.minLength) missing.push(strings.auth.checkMinLength);
+  if (!checks.hasDigit) missing.push(strings.auth.checkDigit);
+  return missing;
+}
+
 /** „× Hasła się różnią” shows only once the repeat field has something in it. */
 export function passwordsDiffer(password: string, repeat: string): boolean {
   return repeat.length > 0 && password !== repeat;
@@ -48,6 +56,11 @@ export interface FormErrors {
   readonly login?: string;
   readonly password?: string;
   readonly repeat?: string;
+  /**
+   * Register: the password misses a rule. No text under the field – the
+   * unmet hints turn red instead (S01), TalkBack reads what is missing.
+   */
+  readonly weakPassword?: boolean;
   /** Field that gets the focus back (the first one with an error). */
   readonly focus: FieldName | null;
 }
@@ -61,21 +74,22 @@ export function validateForm(mode: LoginMode, fields: LoginFields): FormErrors {
   const login = fields.login.trim().length === 0 ? e.loginEmpty : undefined;
   let password: string | undefined;
   let repeat: string | undefined;
+  let weakPassword = false;
 
   if (fields.password.length === 0) {
     password = e.passwordEmpty;
   } else if (mode === "register") {
-    const checks = passwordChecks(fields.password);
-    if (!checks.minLength || !checks.hasDigit) password = e.passwordWeak;
+    weakPassword = missingChecks(passwordChecks(fields.password)).length > 0;
   }
   if (mode === "register" && fields.password !== fields.repeat) repeat = e.passwordsDiffer;
 
-  const focus: FieldName | null = login ? "login" : password ? "password" : repeat ? "repeat" : null;
+  const focus: FieldName | null = login ? "login" : password || weakPassword ? "password" : repeat ? "repeat" : null;
   if (focus === null) return NO_ERRORS;
   return {
     ...(login ? { login } : null),
     ...(password ? { password } : null),
     ...(repeat ? { repeat } : null),
+    ...(weakPassword ? { weakPassword } : null),
     focus,
   };
 }

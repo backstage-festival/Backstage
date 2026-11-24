@@ -2,6 +2,7 @@ import {
   authErrorToForm,
   hasErrors,
   MIN_PASSWORD_LENGTH,
+  missingChecks,
   parseMode,
   passwordChecks,
   passwordsDiffer,
@@ -33,6 +34,14 @@ describe("passwordChecks", () => {
   });
 });
 
+describe("missingChecks", () => {
+  it("lists the unmet hints in order", () => {
+    expect(missingChecks(passwordChecks("abc"))).toEqual(["min. 8 znaków", "cyfra"]);
+    expect(missingChecks(passwordChecks("abcdefgh"))).toEqual(["cyfra"]);
+    expect(missingChecks(passwordChecks("abcdefg1"))).toEqual([]);
+  });
+});
+
 describe("passwordsDiffer", () => {
   it("shows the mismatch only once the repeat field is filled", () => {
     expect(passwordsDiffer("abcdefg1", "")).toBe(false);
@@ -58,8 +67,9 @@ describe("validateForm", () => {
   });
 
   it("checks the password rules and the repeat field when registering", () => {
+    // No text under the field: the unmet hints turn red instead.
     expect(validateForm("register", { login: "kuba", password: "krotkie", repeat: "krotkie" })).toEqual({
-      password: "Hasło: min. 8 znaków i cyfra.",
+      weakPassword: true,
       focus: "password",
     });
     expect(validateForm("register", { login: "kuba", password: "dlugie123", repeat: "dlugie12" })).toEqual({
