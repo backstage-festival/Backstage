@@ -558,7 +558,6 @@ export const strings = {
     error: {
       loginEmpty: "Wpisz login.",
       passwordEmpty: "Wpisz hasło.",
-      passwordWeak: "Hasło: min. 8 znaków i cyfra.",
       passwordsDiffer: "Hasła się różnią",
       invalidCredentials: "Login albo hasło się nie zgadzają. Sprawdź oba pola i spróbuj ponownie.",
       loginTaken: "Ten login jest zajęty. Wybierz inny.",
