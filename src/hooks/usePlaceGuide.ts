@@ -13,6 +13,7 @@ import {
   compassStateOf,
   distanceBetween,
   formatDistance,
+  placeDescription,
   walkMinutes,
 } from "./tentRows";
 import { MOCK_GPS_ACCURACY_M, useHeading, usePosition } from "./useLocation";
@@ -29,7 +30,8 @@ export type PlaceGuide =
   | { readonly status: "notFound" }
   /** No location permission – „Otwórz ustawienia” / „Spróbuj ponownie”. */
   | { readonly status: "noPermission"; readonly retry: () => void }
-  | { readonly status: "ready"; readonly label: string; readonly compass: CompassArrowProps };
+  /** title: „Twój namiot” for the tent (E07b), otherwise the place name. */
+  | { readonly status: "ready"; readonly title: string; readonly compass: CompassArrowProps };
 
 const isLoading = (status: LoadStatus) => status === "idle" || status === "loading";
 
@@ -48,6 +50,8 @@ export function usePlaceGuide(placeId: string): PlaceGuide {
     const angle = arrowAngle(bearing, position, place.location, heading);
     return {
       label: place.label,
+      title: place.type === "tent" ? t.guide.tentTitle : place.label,
+      description: placeDescription(place.type),
       state,
       angle,
       distance: distanceM === null ? t.noDistance : formatDistance(distanceM),
@@ -69,7 +73,7 @@ export function usePlaceGuide(placeId: string): PlaceGuide {
   if (permission === "denied") return { status: "noPermission", retry };
   return {
     status: "ready",
-    label: view.label,
+    title: view.title,
     compass: {
       state: view.state,
       bearingDeg: view.angle,
@@ -77,6 +81,7 @@ export function usePlaceGuide(placeId: string): PlaceGuide {
       walk: view.walk,
       accuracy: t.accuracy(MOCK_GPS_ACCURACY_M),
       targetName: view.label,
+      description: view.description,
       accessibilityLabel: announced,
     },
   };

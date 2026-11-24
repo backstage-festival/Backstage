@@ -185,6 +185,11 @@ export function savedWhen(iso: string): string {
   return weekday === undefined ? formatTime(iso) : t.savedDay(weekday, formatTime(iso));
 }
 
+/** „Opis” until SavedPlace has a description: the type, empty for the tent. */
+export function placeDescription(type: SavedPlaceType): string {
+  return type === "tent" ? "" : t.type[type];
+}
+
 export function toSavedPlaceItemProps(
   place: SavedPlace,
   variant: SavedPlaceVariant,
@@ -192,7 +197,8 @@ export function toSavedPlaceItemProps(
   pending: boolean,
 ): SavedPlaceItemData {
   const distanceM = position === null ? null : distanceBetween(position, place.location);
-  const description = t.type[place.type];
+  // The tent band already says „Twój namiot”; real descriptions wait for a SavedPlace field (Q11).
+  const description = placeDescription(place.type);
   const minutes = distanceM === null ? null : walkMinutes(distanceM);
   const accessibilityLabel =
     variant === "tent"

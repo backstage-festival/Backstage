@@ -39,7 +39,28 @@ function usePlaceActions({ id, pending, onRename, onDelete }: ActionsProps) {
   return { accessibilityActions, onAccessibilityAction };
 }
 
-/** C08 tent: laminate pass – band, name, description, distance and „Prowadź”. */
+/**
+ * ⋯ without a frame (C08 draws none): 24 dp in the layout, 48 × 48 to touch –
+ * the negative margin lets the touch field spill into the surrounding gaps.
+ * Hidden from TalkBack: the parent offers „Zmień nazwę” / „Usuń” as actions.
+ */
+function MoreButton({ label, surface, pending, onPress }: { label: string; surface: "dark" | "laminate"; pending: boolean; onPress: () => void }) {
+  return (
+    <View importantForAccessibility="no-hide-descendants" style={styles.more}>
+      <IconButton
+        icon="more"
+        accessibilityLabel={t.a11y.more(label)}
+        accessibilityHint={t.a11y.moreHint}
+        surface={surface}
+        bare
+        disabled={pending}
+        onPress={onPress}
+      />
+    </View>
+  );
+}
+
+/** C08 / E07a tent: laminate pass – band, name, description, then distance and „Prowadź →”. */
 function TentPass(props: SavedPlaceItemProps) {
   const { id, label, description, distance, walk, savedAt, accessibilityLabel, pending, onGuide, onMore, testID } = props;
   const { theme, level } = useTheme();
@@ -57,45 +78,49 @@ function TentPass(props: SavedPlaceItemProps) {
               <Text allowFontScaling={false} style={[textStyle("passName", level), { color: c.textOnLaminate }]}>
                 {label}
               </Text>
-              <Text allowFontScaling={false} style={[textStyle("bodyM", level), { color: c.textOnLaminateSecondary }]}>
-                {description}
-              </Text>
-              {distance ? (
-                <View style={styles.distance}>
-                  <Icon name="navArrow" size={size.iconSmall} color={c.textOnLaminate} />
-                  <Text allowFontScaling={false} style={[textStyle("data", level), { color: c.textOnLaminate }]}>
-                    {walk ? t.distanceWalk(distance, walk) : distance}
-                  </Text>
-                </View>
+              {description ? (
+                <Text allowFontScaling={false} style={[textStyle("bodyM", level), { color: c.textOnLaminateSecondary }]}>
+                  {description}
+                </Text>
               ) : null}
             </View>
-            <IconButton
-              icon="more"
-              accessibilityLabel={t.a11y.more(label)}
-              accessibilityHint={t.a11y.moreHint}
+            <MoreButton label={label} surface="laminate" pending={pending} onPress={more} />
+          </View>
+          <View style={[styles.guideRow, level === 2 ? styles.guideStacked : null]}>
+            {/* Already in the pass label above. */}
+            <View importantForAccessibility="no-hide-descendants" style={styles.distance}>
+              {distance ? (
+                <>
+                  <Icon name="navArrow" size={size.icon} color={c.textOnLaminate} />
+                  <Text allowFontScaling={false} style={[textStyle("data", level), styles.shrink, { color: c.textOnLaminate }]}>
+                    {walk ? t.distanceWalk(distance, walk) : distance}
+                  </Text>
+                </>
+              ) : null}
+            </View>
+            <Button
+              label={t.guideButton}
+              variant="primary"
               surface="laminate"
+              icon="arrowRight"
               disabled={pending}
-              onPress={more}
+              {...(pending ? { disabledReason: t.saving } : null)}
+              width={level === 2 ? "fill" : "hug"}
+              accessibilityHint={t.a11y.guideHint}
+              onPress={guide}
             />
           </View>
-          <Button
-            label={t.guideButton}
-            variant="primary"
-            surface="laminate"
-            icon="arrowRight"
-            disabled={pending}
-            {...(pending ? { disabledReason: t.saving } : null)}
-            width="fill"
-            accessibilityHint={t.a11y.guideHint}
-            onPress={guide}
-          />
         </View>
       </PassFrame>
     </View>
   );
 }
 
-/** C08 row: type icon, name, description, distance and a chevron; the whole row opens guidance. */
+/**
+ * C08 row: columns icon 24 · text 1fr · distance auto · ⋯ · chevron 24, gap 12,
+ * min. 72. The whole row opens guidance; ⋯ (nested) opens the menu.
+ * 200 %: icon and distance on top, then name and description (C08).
+ */
 function PlaceRow(props: SavedPlaceItemProps) {
   const { id, label, description, icon, distance, savedAt, accessibilityLabel, pending, onPress, onMore, testID } = props;
   const { theme, level } = useTheme();
@@ -103,56 +128,69 @@ function PlaceRow(props: SavedPlaceItemProps) {
   const actions = usePlaceActions(props);
   const open = useCallback(() => onPress(id), [onPress, id]);
   const more = useCallback(() => onMore(id), [onMore, id]);
+  const stacked = level === 2;
+  const meta = pending ? t.saving : description ? `${description}${strings.common.separator}${t.savedAt(savedAt)}` : t.savedAt(savedAt);
+
+  const distanceText = distance ? (
+    <Text allowFontScaling={false} style={[textStyle("data", level), { color: c.textPrimary }]}>
+      {distance}
+    </Text>
+  ) : null;
+  const trailing = (
+    <>
+      <MoreButton label={label} surface="dark" pending={pending} onPress={more} />
+      <Icon name="chevronRight" size={size.icon} color={c.textSecondary} />
+    </>
+  );
+  const text = (
+    <View style={stacked ? styles.rowTextStacked : styles.rowText}>
+      <Text allowFontScaling={false} style={[textStyle("rowName", level), { color: c.textPrimary }]}>
+        {label}
+      </Text>
+      <Text allowFontScaling={false} style={[textStyle("tagMeta", level), { color: c.textSecondary }]}>
+        {meta}
+      </Text>
+    </View>
+  );
 
   return (
-    <View
+    <Pressable
       testID={testID}
-      style={[
+      onPress={open}
+      disabled={pending}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={t.a11y.rowHint}
+      accessibilityState={{ disabled: pending }}
+      {...actions}
+      style={({ pressed }) => [
         styles.row,
-        { borderBottomColor: c.divider, borderBottomWidth: theme.borderWidth.hairline },
+        { minHeight: size.listRowMin, borderBottomColor: c.divider, borderBottomWidth: theme.borderWidth.hairline },
+        stacked ? styles.rowStacked : null,
+        pressed ? { backgroundColor: c.surfaceRaised } : null,
         pending ? styles.pending : null,
       ]}
     >
-      <Pressable
-        onPress={open}
-        disabled={pending}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint={t.a11y.rowHint}
-        accessibilityState={{ disabled: pending }}
-        {...actions}
-        style={({ pressed }) => [
-          styles.rowMain,
-          { minHeight: size.listRowMin },
-          level === 2 ? styles.rowStacked : null,
-          pressed ? { backgroundColor: c.surfaceRaised } : null,
-        ]}
-      >
-        <Icon name={icon} size={size.icon} color={c.textPrimary} />
-        <View style={styles.rowText}>
-          <Text allowFontScaling={false} style={[textStyle("rowName", level), { color: c.textPrimary }]}>
-            {label}
-          </Text>
-          <Text allowFontScaling={false} style={[textStyle("tagMeta", level), { color: c.textSecondary }]}>
-            {pending ? t.saving : `${description}${strings.common.separator}${t.savedAt(savedAt)}`}
-          </Text>
-        </View>
-        {distance ? (
-          <Text allowFontScaling={false} style={[textStyle("data", level), { color: c.textPrimary }]}>
-            {distance}
-          </Text>
-        ) : null}
-        <Icon name="chevronRight" size={size.icon} color={c.textSecondary} />
-      </Pressable>
-      <IconButton
-        icon="more"
-        accessibilityLabel={t.a11y.more(label)}
-        accessibilityHint={t.a11y.moreHint}
-        surface="dark"
-        disabled={pending}
-        onPress={more}
-      />
-    </View>
+      {stacked ? (
+        <>
+          <View style={styles.rowTop}>
+            <Icon name={icon} size={size.icon} color={c.textPrimary} />
+            <View style={styles.rowTopEnd}>
+              {distanceText}
+              {trailing}
+            </View>
+          </View>
+          {text}
+        </>
+      ) : (
+        <>
+          <Icon name={icon} size={size.icon} color={c.textPrimary} />
+          {text}
+          {distanceText}
+          {trailing}
+        </>
+      )}
+    </Pressable>
   );
 }
 
@@ -163,14 +201,24 @@ function SavedPlaceItemBase(props: SavedPlaceItemProps) {
 
 export const SavedPlaceItem = memo(SavedPlaceItemBase);
 
+/** ⋯ is 48 × 48 to touch but takes 24 × 24 in the layout. */
+const MORE_OVERHANG = (size.iconButton - size.icon) / 2;
+
 const styles = StyleSheet.create({
-  passBody: { paddingLeft: PASS_CONTENT_LEFT, paddingRight: spacing.s3, paddingVertical: spacing.s3, gap: spacing.s3 },
+  // C08: padding 10 / 12 / 12 / 44.
+  passBody: { paddingLeft: PASS_CONTENT_LEFT, paddingRight: spacing.s3, paddingTop: 10, paddingBottom: spacing.s3, gap: spacing.s3 },
   passTop: { flexDirection: "row", alignItems: "flex-start", gap: spacing.s2 },
   passText: { flex: 1, gap: spacing.s1 },
-  distance: { flexDirection: "row", alignItems: "center", gap: spacing.s1 },
-  row: { flexDirection: "row", alignItems: "center", gap: spacing.s1 },
-  rowMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: spacing.s3, paddingVertical: spacing.s3 },
-  rowStacked: { flexWrap: "wrap" },
+  guideRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.s3 },
+  guideStacked: { flexDirection: "column", alignItems: "stretch" },
+  distance: { flexDirection: "row", alignItems: "center", gap: spacing.s2, flexShrink: 1 },
+  shrink: { flexShrink: 1 },
+  more: { margin: -MORE_OVERHANG },
+  row: { flexDirection: "row", alignItems: "center", gap: spacing.s3, paddingVertical: spacing.s3 },
+  rowStacked: { flexDirection: "column", alignItems: "stretch" },
+  rowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  rowTopEnd: { flexDirection: "row", alignItems: "center", gap: spacing.s3 },
   rowText: { flex: 1, gap: spacing.s1 },
+  rowTextStacked: { gap: spacing.s1 },
   pending: { opacity: PENDING_OPACITY },
 });

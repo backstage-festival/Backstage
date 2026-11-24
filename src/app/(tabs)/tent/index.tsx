@@ -83,7 +83,8 @@ function TentHeader({ count, screen }: TentHeaderProps) {
       <ScreenHeader
         title={t.title}
         accessory={
-          <Text allowFontScaling={false} style={[textStyle("eyebrow", level), { color: theme.colors.textSecondary }]}>
+          // E07a: the counter sits right of the title, right-aligned, may wrap.
+          <Text allowFontScaling={false} style={[textStyle("eyebrow", level), styles.counter, { color: theme.colors.textSecondary }]}>
             {t.count(count)}
           </Text>
         }
@@ -121,14 +122,39 @@ export default function TentScreen() {
   const renderItem = useCallback<ListRenderItem<TentRow>>(
     ({ item }) =>
       item.type === "header" ? (
-        <SectionHeader label={item.label} />
+        // E07a: label without a rule; the hairline above the first row.
+        <View style={{ borderBottomColor: theme.colors.divider, borderBottomWidth: theme.borderWidth.hairline }}>
+          <SectionHeader label={item.label} rule={false} />
+        </View>
       ) : (
         <SavedPlaceItem {...item.item} onPress={openPlace} onGuide={openPlace} onMore={openMenu} onRename={openRename} onDelete={askDelete} />
       ),
-    [openPlace, openMenu, openRename, askDelete],
+    [openPlace, openMenu, openRename, askDelete, theme],
   );
 
   const state = stateFor(screen);
+
+  // Level 2: the save button and GPS line scroll with the list (ListFooterComponent);
+  // a sticky footer would take too much of the screen at 200 %. 100 % and 150 %: sticky.
+  const footerInList = level === 2;
+  const footer = (
+    <View style={footerInList ? styles.footerInList : styles.footer}>
+      <Button
+        label={t.savePosition}
+        variant="primary"
+        surface="dark"
+        icon="pin"
+        disabled={screen.saving}
+        {...(screen.saving ? { disabledReason: t.locating } : null)}
+        width="fill"
+        accessibilityHint={t.a11y.saveHint}
+        onPress={screen.savePosition}
+      />
+      <Text allowFontScaling={false} style={[textStyle("statusMeta", level), { color: c.textSecondary }]}>
+        {screen.gpsMeta}
+      </Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: c.background }]} edges={["top"]}>
@@ -142,24 +168,10 @@ export default function TentScreen() {
             keyExtractor={keyOf}
             renderItem={renderItem}
             ListHeaderComponent={<TentHeader count={screen.count} screen={screen} />}
+            {...(footerInList ? { ListFooterComponent: footer } : null)}
             contentContainerStyle={styles.list}
           />
-          <View style={[styles.footer, { borderTopColor: c.divider, borderTopWidth: theme.borderWidth.hairline }]}>
-            <Button
-              label={t.savePosition}
-              variant="primary"
-              surface="dark"
-              icon="pin"
-              disabled={screen.saving}
-              {...(screen.saving ? { disabledReason: t.locating } : null)}
-              width="fill"
-              accessibilityHint={t.a11y.saveHint}
-              onPress={screen.savePosition}
-            />
-            <Text allowFontScaling={false} style={[textStyle("statusMeta", level), { color: c.textSecondary }]}>
-              {screen.gpsMeta}
-            </Text>
-          </View>
+          {footerInList ? null : footer}
         </>
       )}
 
@@ -190,6 +202,9 @@ export default function TentScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: { gap: spacing.s4, paddingBottom: spacing.s2 },
+  counter: { flexShrink: 1, maxWidth: "50%", textAlign: "right" },
   list: { padding: spacing.screen },
   footer: { paddingHorizontal: spacing.screen, paddingVertical: spacing.s3, gap: spacing.s2 },
+  /** Inside the list: the list padding gives the sides and the bottom. */
+  footerInList: { paddingTop: spacing.s4, gap: spacing.s2 },
 });

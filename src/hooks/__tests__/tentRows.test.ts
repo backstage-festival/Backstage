@@ -11,6 +11,7 @@ import {
   compassStateOf,
   formatDistance,
   nextPlace,
+  placeDescription,
   relativeAngle,
   savedWhen,
   shortestRotation,
@@ -221,7 +222,8 @@ describe("toSavedPlaceItemProps", () => {
     const far = { latitude: 54.36396, longitude: 18.6472 };
     const item = toSavedPlaceItemProps(place("t", "tent", "Namiot"), "tent", far, false);
 
-    expect(item.accessibilityLabel).toBe("Twój namiot, Namiot. Namiot. 240 metrów, 3 minuty.");
+    expect(item.description).toBe("");
+    expect(item.accessibilityLabel).toBe("Twój namiot, Namiot. 240 metrów, 3 minuty.");
   });
 
   it("has no distance before the first GPS fix and says when it is saving", () => {
@@ -252,5 +254,12 @@ describe("buildTentRows / nextPlace", () => {
   it("saves the tent first, then numbered places", () => {
     expect(nextPlace([])).toEqual({ label: "Namiot", type: "tent" });
     expect(nextPlace([place("t", "tent"), place("a", "other")])).toEqual({ label: "Miejsce 2", type: "other" });
+  });
+});
+
+describe("placeDescription", () => {
+  it("leaves the tent without a description – the band already says „Twój namiot”", () => {
+    expect(placeDescription("tent")).toBe("");
+    expect(placeDescription("meeting_point")).toBe("Punkt zbiórki");
   });
 });

@@ -38,7 +38,7 @@ export default function GuidanceScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Button
           label={t.guide.back}
-          variant="ghost"
+          variant="link"
           surface="dark"
           icon="arrowLeft"
           disabled={false}
@@ -85,7 +85,7 @@ export default function GuidanceScreen() {
                 {t.guide.eyebrow}
               </Text>
               <Text allowFontScaling={false} accessibilityRole="header" style={[textStyle("targetName", level), { color: c.textPrimary }]}>
-                {guide.label}
+                {guide.title}
               </Text>
             </View>
 
@@ -101,7 +101,7 @@ export default function GuidanceScreen() {
               accessibilityHint={t.a11y.mapHint}
               onPress={showOnMap}
             />
-            <Text allowFontScaling={false} style={[textStyle("statusMeta", level), styles.center, { color: c.textSecondary }]}>
+            <Text allowFontScaling={false} style={[textStyle("statusMeta", level), { color: c.textSecondary }]}>
               {t.guide.holdFlat}
             </Text>
           </>
@@ -115,5 +115,4 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: spacing.screen, gap: spacing.s4, paddingBottom: spacing.s12 },
   title: { gap: spacing.s1 },
-  center: { textAlign: "center" },
 });

@@ -19,6 +19,20 @@ const ARROW_NOTCH_RATIO = 0.28;
 const ARROW_OUTLINE = 3;
 /** Text inside the ring keeps clear of the border. */
 const RING_TEXT_RATIO = 0.7;
+/** E07b dial: 8 ticks every 45°, the one over „N” is long. */
+const TICK_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
+const TICK_LONG = spacing.s6;
+const TICK_SHORT = spacing.s3;
+
+/** One tick: a full-ring layer turned by `angle`, the tick at its top edge. Static transform. */
+function Tick({ angle, ring, color, width }: { angle: number; ring: number; color: string; width: number }) {
+  const length = angle === 0 ? TICK_LONG : TICK_SHORT;
+  return (
+    <View style={[styles.tickLayer, { width: ring, height: ring, transform: [{ rotate: `${angle}deg` }] }]}>
+      <View style={{ width, height: length, backgroundColor: color }} />
+    </View>
+  );
+}
 
 const t = strings.tent.compass;
 
@@ -79,6 +93,7 @@ export function CompassArrow({
   walk,
   accuracy,
   targetName,
+  description,
   accessibilityLabel,
   testID,
 }: CompassArrowProps) {
@@ -87,6 +102,7 @@ export function CompassArrow({
   const ring = level === 2 ? RING_XL : size.compassRing;
   const arrow = Math.min(size.compassArrow, ring - spacing.s12 * 2);
   const textWidth = ring * RING_TEXT_RATIO;
+  const ringBorder = theme.borderWidth.control * RING_BORDER_FACTOR;
 
   // Unbounded degrees, so 350° → 10° turns forward, not all the way back.
   const [rotation] = useState(() => new Animated.Value(0));
@@ -124,9 +140,13 @@ export function CompassArrow({
       <View
         style={[
           styles.ring,
-          { width: ring, height: ring, borderColor: c.border, borderWidth: theme.borderWidth.control * RING_BORDER_FACTOR },
+          { width: ring, height: ring, borderColor: c.border, borderWidth: ringBorder },
         ]}
       >
+        {TICK_ANGLES.map((angle) => (
+          // E07b: the long tick over „N” is light, the other seven take the ring colour.
+          <Tick key={angle} angle={angle} ring={ring - ringBorder * 2} color={angle === 0 ? c.textPrimary : c.border} width={ringBorder} />
+        ))}
         <Text allowFontScaling={false} style={[textStyle("eyebrow", level), styles.north, { color: c.textPrimary }]}>
           {t.north}
         </Text>
@@ -145,19 +165,27 @@ export function CompassArrow({
         {state === "noHeading" ? message(t.noHeading, t.noHeadingBody, c.textPrimary, false) : null}
       </View>
 
-      <View style={[styles.data, level === 2 ? styles.dataStacked : null]}>
-        <Text allowFontScaling={false} style={[textStyle("dataXXL", level), { color: c.textPrimary }]}>
-          {distance}
+      {/* E07b: left-aligned under the dial, the time at the right edge on the distance baseline. */}
+      <View style={styles.below}>
+        <View style={[styles.data, level === 2 ? styles.dataStacked : null]}>
+          <Text allowFontScaling={false} style={[textStyle("dataXXL", level), { color: c.textPrimary }]}>
+            {distance}
+          </Text>
+          {walk ? (
+            <Text allowFontScaling={false} style={[textStyle("data", level), { color: c.textSecondary }]}>
+              {walk}
+            </Text>
+          ) : null}
+        </View>
+        <Text allowFontScaling={false} style={[textStyle("label", level), { color: c.textPrimary }]}>
+          {t.meta(targetName, accuracy)}
         </Text>
-        {walk ? (
-          <Text allowFontScaling={false} style={[textStyle("data", level), { color: c.textSecondary }]}>
-            {walk}
+        {description ? (
+          <Text allowFontScaling={false} style={[textStyle("bodyM", level), { color: c.textSecondary }]}>
+            {description}
           </Text>
         ) : null}
       </View>
-      <Text allowFontScaling={false} style={[textStyle("eyebrow", level), styles.center, { color: c.textSecondary }]}>
-        {t.meta(targetName, accuracy)}
-      </Text>
     </View>
   );
 }
@@ -165,7 +193,8 @@ export function CompassArrow({
 const styles = StyleSheet.create({
   block: { alignItems: "center", gap: spacing.s3 },
   ring: { borderRadius: radius.round, alignItems: "center", justifyContent: "center" },
-  north: { position: "absolute", top: spacing.s3 },
+  north: { position: "absolute", top: TICK_LONG + spacing.s1 },
+  tickLayer: { position: "absolute", alignItems: "center" },
   halves: { flexDirection: "row" },
   triangle: {
     width: 0,
@@ -179,6 +208,7 @@ const styles = StyleSheet.create({
   arrowOnTop: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center" },
   message: { alignItems: "center", gap: spacing.s1 },
   center: { textAlign: "center" },
-  data: { flexDirection: "row", alignItems: "baseline", gap: spacing.s3 },
-  dataStacked: { flexDirection: "column", alignItems: "center", gap: spacing.s1 },
+  below: { alignSelf: "stretch", gap: spacing.s1 },
+  data: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: spacing.s3 },
+  dataStacked: { flexDirection: "column", alignItems: "flex-start", gap: spacing.s1 },
 });

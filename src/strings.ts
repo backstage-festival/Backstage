@@ -361,10 +361,11 @@ export const strings = {
     textSize: {
       section: "Rozmiar tekstu",
       group: "Rozmiar tekstu",
-      /** SegmentedControl has one text line, so „A” and the percentage share it. */
-      standard: "A 100%",
-      large: "A 150%",
-      xlarge: "A 200%",
+      /** E11: „A” in three sizes with the percentage under it (joined SegmentedControl). */
+      letter: "A",
+      standard: "100%",
+      large: "150%",
+      xlarge: "200%",
       a11y: {
         standard: "100 procent",
         large: "150 procent",
@@ -403,7 +404,8 @@ export const strings = {
   /** S07 · Namiot + 07b prowadzenie (C06, C08, dialog) */
   tent: {
     title: "Namiot",
-    count: (n: number) => `Zapisane miejsca · ${n}`,
+    /** No-break spaces: the number never stays alone on a line (E07a wraps „Zapisane / miejsca · 3”). */
+    count: (n: number) => `Zapisane miejsca · ${n}`,
     otherPlaces: "Inne miejsca",
     savePosition: "Zapisz moją pozycję",
     gpsMeta: (accuracy: string) => `GPS ${accuracy} · działa bez zasięgu`,
@@ -471,6 +473,8 @@ export const strings = {
     guide: {
       back: "Miejsca",
       eyebrow: "Prowadzenie do",
+      /** E07b: the tent is titled „Twój namiot”, its name goes to the line under the distance. */
+      tentTitle: "Twój namiot",
       showOnMap: "Pokaż na mapie",
       holdFlat: "Trzymaj telefon płasko · kompas OK",
       notFoundEyebrow: "Prowadzenie",
@@ -495,10 +499,10 @@ export const strings = {
       walkSpoken: (minutes: number) => `około ${minutes} ${minutesWord(minutes)} pieszo`,
       /** „Namiot, Punkt zbiórki, 240 metrów, około 3 minuty pieszo” */
       row: (label: string, type: string, distance: string | null) =>
-        `${label}, ${type}` + (distance === null ? "" : `, ${distance}`),
-      /** C08: „Twój namiot, Namiot. Namiot. 240 metrów, 3 minuty.” */
+        label + (type ? `, ${type}` : "") + (distance === null ? "" : `, ${distance}`),
+      /** C08: „Twój namiot, Pole C, rząd 4. Zielony namiot… 240 metrów, 3 minuty.” (no description yet) */
       pass: (label: string, description: string, distance: string | null) =>
-        `Twój namiot, ${label}. ${description}.` + (distance === null ? "" : ` ${distance}.`),
+        `Twój namiot, ${label}.` + (description ? ` ${description}.` : "") + (distance === null ? "" : ` ${distance}.`),
       /** Row: „…, zapisuję”; pass (ends with a sentence): „… Zapisuję.” */
       withSaving: (label: string, sentence: boolean) => (sentence ? `${label} Zapisuję.` : `${label}, zapisuję`),
       rowHint: "Otwiera prowadzenie kompasem",
@@ -567,6 +571,8 @@ export const strings = {
       passwordHidden: (label: string) => `${label}, hasło ukryte`,
       withError: (label: string, error: string) => `${label}. Błąd: ${error}`,
       check: (label: string, met: boolean) => `${label}: ${met ? "spełnione" : "niespełnione"}`,
+      /** Password field after a failed register attempt: „Brakuje: min. 8 znaków, cyfra”. */
+      missing: (labels: readonly string[]) => `Brakuje: ${labels.join(", ")}`,
       forgotHint: "Otwiera stronę resetu hasła",
     },
   },
