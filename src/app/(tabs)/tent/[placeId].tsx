@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { CompassArrow } from "@/components/CompassArrow";
 import { EmptyState } from "@/components/EmptyState";
+import { firstParam } from "@/hooks/tentRows";
 import { usePlaceGuide } from "@/hooks/usePlaceGuide";
 import { strings } from "@/strings";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -28,8 +29,10 @@ const showOnMap = (): void => {
 
 /** 07b · Prowadzenie do miejsca – compass, distance and walking time, works offline. */
 export default function GuidanceScreen() {
-  const { placeId } = useLocalSearchParams<{ placeId: string }>();
-  const guide = usePlaceGuide(placeId as string);
+  // Typed routes say string, but without .expo/types (CI) the param is string | string[] | undefined.
+  // A missing id shows „miejsce nie istnieje” (notFound).
+  const placeId = firstParam(useLocalSearchParams<"/tent/[placeId]">().placeId);
+  const guide = usePlaceGuide(placeId);
   const { theme, level } = useTheme();
   const c = theme.colors;
 

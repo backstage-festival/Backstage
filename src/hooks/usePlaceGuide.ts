@@ -34,11 +34,13 @@ export type PlaceGuide =
   | { readonly status: "ready"; readonly title: string; readonly compass: CompassArrowProps };
 
 const isLoading = (status: LoadStatus) => status === "idle" || status === "loading";
+/** Selector for a missing route param – no place, without searching the store. */
+const noPlace = (): null => null;
 
 /** The only place the 07b screen reads stores and sensors. */
-export function usePlaceGuide(placeId: string): PlaceGuide {
+export function usePlaceGuide(placeId: string | null): PlaceGuide {
   usePlacesLoader();
-  const place = usePlacesStore(useMemo(() => selectPlace(placeId), [placeId]));
+  const place = usePlacesStore(useMemo(() => (placeId === null ? noPlace : selectPlace(placeId)), [placeId]));
   const loadStatus = usePlacesStore((state) => state.loadStatus);
   const { position, permission, retry } = usePosition();
   const { heading, timedOut } = useHeading();
@@ -69,6 +71,8 @@ export function usePlaceGuide(placeId: string): PlaceGuide {
     view?.hasDistance ?? false,
   );
 
+  // No id in the route: nothing to wait for.
+  if (placeId === null) return { status: "notFound" };
   if (view === null) return isLoading(loadStatus) ? { status: "loading" } : { status: "notFound" };
   if (permission === "denied") return { status: "noPermission", retry };
   return {

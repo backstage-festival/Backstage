@@ -27,6 +27,16 @@ const SPOKEN_STEP_DEG = 10;
 export const ANNOUNCE_INTERVAL_MS = 10_000;
 export const ANNOUNCE_ANGLE_DEG = 30;
 
+/**
+ * Route param → one value. Without generated typed routes (CI: .expo/types is
+ * gitignored) expo-router types a param as string | string[] | undefined.
+ * Takes the first element of an array; missing or empty → null.
+ */
+export function firstParam(value: string | string[] | undefined): string | null {
+  const first = Array.isArray(value) ? value[0] : value;
+  return first === undefined || first === "" ? null : first;
+}
+
 export function distanceBetween(from: Coordinates, to: Coordinates): number {
   return calculateDistanceInMeters(from.latitude, from.longitude, to.latitude, to.longitude);
 }

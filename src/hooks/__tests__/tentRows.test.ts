@@ -9,6 +9,7 @@ import {
   buildTentRows,
   compassA11yLabel,
   compassStateOf,
+  firstParam,
   formatDistance,
   nextPlace,
   placeDescription,
@@ -254,6 +255,17 @@ describe("buildTentRows / nextPlace", () => {
   it("saves the tent first, then numbered places", () => {
     expect(nextPlace([])).toEqual({ label: "Namiot", type: "tent" });
     expect(nextPlace([place("t", "tent"), place("a", "other")])).toEqual({ label: "Miejsce 2", type: "other" });
+  });
+});
+
+describe("firstParam", () => {
+  it("reads one route param value, null when missing or empty", () => {
+    expect(firstParam("p1")).toBe("p1");
+    expect(firstParam(["p1", "p2"])).toBe("p1");
+    expect(firstParam([])).toBeNull();
+    expect(firstParam(undefined)).toBeNull();
+    expect(firstParam("")).toBeNull();
+    expect(firstParam([""])).toBeNull();
   });
 });
 
