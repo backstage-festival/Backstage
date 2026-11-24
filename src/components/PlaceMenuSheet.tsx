@@ -1,13 +1,14 @@
-import { useCallback, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Modal, Pressable, StyleSheet, Text, type TextInput, View } from "react-native";
 
 import { MAX_PLACE_LABEL_LENGTH } from "@/domain/utils/textRules";
 import { strings } from "@/strings";
 import { useTheme } from "@/theme/ThemeProvider";
-import { radius, size, spacing, textStyle } from "@/theme/theme";
+import { radius, spacing, textStyle } from "@/theme/theme";
 
 import { Button } from "./Button";
 import { useReduceMotion } from "./motion";
+import { TextField } from "./TextField";
 
 const BACKDROP_ALPHA = "CC";
 const t = strings.tent;
@@ -24,8 +25,8 @@ export interface PlaceMenuSheetProps {
 
 /**
  * „More” menu of a saved place: Zmień nazwę / Usuń / Anuluj, as a simple
- * bottom sheet. Rename swaps the menu for a text field.
- * TODO(#29 part C): use TextField once it exists.
+ * bottom sheet. Rename swaps the menu for the S01 TextField; an empty name
+ * shows the error under the field and disables „Zapisz”.
  * The parent remounts the sheet per place (key), so the field starts fresh.
  */
 export function PlaceMenuSheet({ visible, label, startRenaming, onRename, onDelete, onClose }: PlaceMenuSheetProps) {
@@ -35,6 +36,12 @@ export function PlaceMenuSheet({ visible, label, startRenaming, onRename, onDele
   const [renaming, setRenaming] = useState(startRenaming);
   const [text, setText] = useState(label);
   const valid = text.trim().length > 0;
+  const fieldRef = useRef<TextInput>(null);
+
+  // Focus the field as soon as rename mode starts (was autoFocus on the own input).
+  useEffect(() => {
+    if (renaming) fieldRef.current?.focus();
+  }, [renaming]);
 
   const startRename = useCallback(() => setRenaming(true), []);
   const save = useCallback(() => {
@@ -60,31 +67,26 @@ export function PlaceMenuSheet({ visible, label, startRenaming, onRename, onDele
           </Text>
           {renaming ? (
             <View style={styles.field}>
-              <Text allowFontScaling={false} style={[textStyle("label", level), { color: c.textPrimary }]}>
-                {t.menu.nameLabel}
-              </Text>
-              <TextInput
+              <TextField
+                ref={fieldRef}
+                label={t.menu.nameLabel}
                 value={text}
                 onChangeText={setText}
-                autoFocus
-                maxLength={MAX_PLACE_LABEL_LENGTH}
+                {...(valid ? null : { error: t.note.invalidLabel })}
+                autoComplete="off"
+                textContentType="none"
                 returnKeyType="done"
                 onSubmitEditing={save}
-                allowFontScaling={false}
-                accessibilityLabel={t.menu.nameLabel}
-                selectionColor={c.accent}
-                style={[
-                  textStyle("input", level),
-                  styles.input,
-                  { color: c.textPrimary, borderColor: c.border, borderWidth: theme.borderWidth.control },
-                ]}
+                maxLength={MAX_PLACE_LABEL_LENGTH}
+                editable
               />
               <Button
                 label={t.menu.save}
                 variant="primary"
                 surface="dark"
                 disabled={!valid}
-                {...(valid ? null : { disabledReason: t.note.invalidLabel })}
+                // The error is already under the field – the reason goes to TalkBack only.
+                {...(valid ? null : { accessibilityHint: t.note.invalidLabelA11y })}
                 width="fill"
                 onPress={save}
               />
@@ -112,6 +114,5 @@ const styles = StyleSheet.create({
     gap: spacing.s3,
   },
   actions: { gap: spacing.s2 },
-  field: { gap: spacing.s2 },
-  input: { minHeight: size.input, borderRadius: radius.button, paddingHorizontal: spacing.s3 },
+  field: { gap: spacing.s3 },
 });

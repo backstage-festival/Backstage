@@ -37,6 +37,8 @@ export function TextField({
   textContentType,
   returnKeyType,
   onSubmitEditing,
+  maxLength,
+  selectTextOnFocus,
   editable,
   testID,
 }: TextFieldElementProps) {
@@ -83,6 +85,8 @@ export function TextField({
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType={returnKeyType}
+          maxLength={maxLength}
+          selectTextOnFocus={selectTextOnFocus}
           {...(onSubmitEditing ? { onSubmitEditing, submitBehavior: returnKeyType === "next" ? "submit" : "blurAndSubmit" } : null)}
           allowFontScaling={false}
           accessibilityLabel={a11yLabel}

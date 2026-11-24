@@ -163,7 +163,7 @@ export function Button({
         disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={label}
-        accessibilityHint={disabled ? disabledReason : accessibilityHint}
+        accessibilityHint={disabled ? (disabledReason ?? accessibilityHint) : accessibilityHint}
         accessibilityState={{ disabled }}
         {...(link ? { hitSlop: linkHitSlop(Number(labelStyle.lineHeight)) } : null)}
       >

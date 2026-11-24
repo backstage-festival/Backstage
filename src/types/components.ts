@@ -177,8 +177,10 @@ export interface ButtonProps {
   surface: ButtonSurface;
   icon?: IconName;
   disabled: boolean;
-  disabledReason?: string; // required when disabled
+  /** Shown under the disabled button and read as its hint. Leave it out when the screen already shows the reason. */
+  disabledReason?: string;
   width: "fill" | "hug";
+  /** Read by TalkBack; when disabled without disabledReason it carries the reason (no visible text). */
   accessibilityHint?: string;
   /** link only: underlined label (S01). */
   underline?: boolean;
@@ -415,6 +417,10 @@ export interface TextFieldProps {
   textContentType: "username" | "password" | "newPassword" | "none";
   returnKeyType?: "next" | "done" | "go";
   onSubmitEditing?: () => void;
+  /** Characters allowed (place name: MAX_PLACE_LABEL_LENGTH). */
+  maxLength?: number;
+  /** Select the whole text on focus, so typing replaces it (rename). */
+  selectTextOnFocus?: boolean;
   editable: boolean;
   testID?: string;
 }
