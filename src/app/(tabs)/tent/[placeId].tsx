@@ -28,8 +28,8 @@ const showOnMap = (): void => {
 
 /** 07b · Prowadzenie do miejsca – compass, distance and walking time, works offline. */
 export default function GuidanceScreen() {
-  const { placeId } = useLocalSearchParams<"/tent/[placeId]">();
-  const guide = usePlaceGuide(placeId);
+  const { placeId } = useLocalSearchParams<{ placeId: string }>();
+  const guide = usePlaceGuide(placeId as string);
   const { theme, level } = useTheme();
   const c = theme.colors;
 
