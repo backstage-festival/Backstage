@@ -22,7 +22,7 @@ import {
 } from "@/store";
 import { strings } from "@/strings";
 import { useTheme } from "@/theme/ThemeProvider";
-import { spacing, textStyle, type TextSizeSetting } from "@/theme/theme";
+import { radius, spacing, textStyle, type TextSizeSetting } from "@/theme/theme";
 import type { RadioOption, SegmentedOption } from "@/types/components";
 
 type SnoozeChoice = "5" | "10" | "15";
@@ -30,9 +30,10 @@ type SnoozeChoice = "5" | "10" | "15";
 const t = strings.settings;
 
 const TEXT_SIZE_OPTIONS: readonly SegmentedOption<TextSizeSetting>[] = [
-  { value: "standard", label: t.textSize.standard, accessibilityLabel: t.textSize.a11y.standard },
-  { value: "large", label: t.textSize.large, accessibilityLabel: t.textSize.a11y.large },
-  { value: "xlarge", label: t.textSize.xlarge, accessibilityLabel: t.textSize.a11y.xlarge },
+  // E11: „A” grows with the option (condensed 20 / 24 / 28 at 100 %), the percentage under it.
+  { value: "standard", label: t.textSize.letter, sublabel: t.textSize.standard, labelStyle: "buttonSmall", accessibilityLabel: t.textSize.a11y.standard },
+  { value: "large", label: t.textSize.letter, sublabel: t.textSize.large, labelStyle: "displayXS", accessibilityLabel: t.textSize.a11y.large },
+  { value: "xlarge", label: t.textSize.letter, sublabel: t.textSize.xlarge, labelStyle: "targetName", accessibilityLabel: t.textSize.a11y.xlarge },
 ];
 
 const ALERT_OPTIONS: readonly RadioOption<LeaveNowAlertSetting>[] = [
@@ -46,6 +47,8 @@ const SNOOZE_OPTIONS: readonly SegmentedOption<SnoozeChoice>[] = SNOOZE_VALUES.m
   value: snoozeChoiceOf(minutes),
   label: t.snooze.option(minutes),
   accessibilityLabel: t.snooze.a11y(minutes),
+  // E11: „5 min” in mono, as written (C13 dayTabs use condensed caps – E11 wins).
+  labelStyle: "alertMeta",
 }));
 
 function snoozeChoiceOf(minutes: SnoozeMinutes): SnoozeChoice {
@@ -70,16 +73,18 @@ function errorNote(error: SettingsError | null) {
 
 /** „Podgląd na żywo” – the Plan alert and card in the current theme. One TalkBack stop, not interactive. */
 function LivePreview() {
+  const { theme } = useTheme();
   const { alert, card } = useAccessibilityPreview();
   return (
     <View
       accessible
       accessibilityLabel={t.a11y.preview}
       pointerEvents="none"
-      style={styles.preview}
+      style={[styles.preview, { borderColor: theme.colors.border, borderWidth: theme.borderWidth.hairline }]}
     >
-      {alert ? <LeaveNowAlert {...alert} onGuide={noop} onSnooze={noop} onMute={noop} /> : null}
-      {card ? <PerformanceCard {...card} onPress={noop} onTogglePlan={noop} /> : null}
+      {alert ? <LeaveNowAlert {...alert} preview onGuide={noop} onSnooze={noop} onMute={noop} /> : null}
+      {/* E11: the card in conflict, without the add button – the status tag shows the patterns. */}
+      {card ? <PerformanceCard {...card} showPlanToggle={false} onPress={noop} onTogglePlan={noop} /> : null}
     </View>
   );
 }
@@ -124,7 +129,7 @@ export default function AccessibilityScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Button
           label={t.back}
-          variant="ghost"
+          variant="link"
           surface="dark"
           icon="arrowLeft"
           disabled={false}
@@ -135,19 +140,21 @@ export default function AccessibilityScreen() {
         <Text
           allowFontScaling={false}
           accessibilityRole="header"
-          style={[textStyle("titleSettings", level), { color: c.textPrimary }]}
+          style={[textStyle("titleSettings", level), styles.title, { color: c.textPrimary }]}
         >
           {t.title}
         </Text>
 
         {note ? (
-          <PlanNoteRow label={note.label} accessibilityLabel={note.a11y} tone="error" onDismiss={clearError} />
+          <View style={styles.below}>
+            <PlanNoteRow label={note.label} accessibilityLabel={note.a11y} tone="error" onDismiss={clearError} />
+          </View>
         ) : null}
 
-        <SectionHeader label={t.preview} />
+        <SectionHeader compact rule={false} label={t.preview} />
         <LivePreview />
 
-        <SectionHeader label={t.contrast.section} />
+        <SectionHeader compact rule={false} label={t.contrast.section} />
         <SettingSwitch
           title={t.contrast.title}
           description={t.contrast.description}
@@ -155,7 +162,7 @@ export default function AccessibilityScreen() {
           onValueChange={onHighContrast}
         />
 
-        <SectionHeader label={t.colors.section} />
+        <SectionHeader compact rule={false} label={t.colors.section} />
         <SettingSwitch
           title={t.colors.title}
           description={t.colors.description}
@@ -163,20 +170,20 @@ export default function AccessibilityScreen() {
           onValueChange={onColorVision}
         />
 
-        <SectionHeader label={t.textSize.section} />
+        <SectionHeader compact rule={false} label={t.textSize.section} />
         <SegmentedControl
           groupLabel={t.textSize.group}
           options={TEXT_SIZE_OPTIONS}
           mode="single"
           value={textSizeValue}
-          look="dayTabs"
+          look="joined"
           onChange={onTextSize}
         />
-        <Text allowFontScaling={false} style={[textStyle("bodyS", level), { color: c.textSecondary }]}>
+        <Text allowFontScaling={false} style={[textStyle("bodyS", level), styles.below, { color: c.textSecondary }]}>
           {t.textSize.description}
         </Text>
 
-        <SectionHeader label={t.motion.section} />
+        <SectionHeader compact rule={false} label={t.motion.section} />
         <SettingSwitch
           title={t.motion.title}
           description={t.motion.description}
@@ -184,10 +191,10 @@ export default function AccessibilityScreen() {
           onValueChange={onMotion}
         />
 
-        <SectionHeader label={t.alerts.section} />
+        <SectionHeader compact rule={false} label={t.alerts.section} />
         <RadioGroup groupLabel={t.alerts.group} options={ALERT_OPTIONS} value={leaveNowAlerts} onChange={onAlerts} />
 
-        <SectionHeader label={t.snooze.section} />
+        <SectionHeader compact rule={false} label={t.snooze.section} />
         <SegmentedControl
           groupLabel={t.snooze.group}
           options={SNOOZE_OPTIONS}
@@ -203,6 +210,9 @@ export default function AccessibilityScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: spacing.screen, gap: spacing.s3, paddingBottom: spacing.s12 },
-  preview: { gap: spacing.s3 },
+  // No gap: E11 spacing comes from SectionHeader compact (16 above, 12 below) and the row hairlines.
+  content: { padding: spacing.screen, paddingBottom: spacing.s12 },
+  title: { marginTop: spacing.s3 },
+  below: { marginTop: spacing.s3 },
+  preview: { gap: spacing.s3, padding: spacing.s4, borderRadius: radius.pass },
 });
