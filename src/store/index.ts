@@ -1,16 +1,16 @@
 import { useStore } from "zustand";
 
 import {
-  mockAuthDeps,
-  mockCheckInDeps,
-  mockLineupDeps,
-  mockMessageDeps,
-  mockNetworkService,
-  mockPlacesDeps,
-  mockScheduleDeps,
-  mockSettingsDeps,
-  mockTransitDeps,
-} from "@/mocks/mockStoreDeps";
+  authDeps,
+  checkInDeps,
+  connectionDeps,
+  lineupDeps,
+  messageDeps,
+  placesDeps,
+  scheduleDeps,
+  settingsDeps,
+  transitDeps,
+} from "@/di/container";
 
 import { type AuthState, createAuthStore } from "./authStore";
 import { type CheckInState, createCheckInStore } from "./checkInStore";
@@ -23,26 +23,22 @@ import { createScheduleStore, type ScheduleState } from "./scheduleStore";
 import { createSettingsStore, type SettingsState } from "./settingsStore";
 import { createTransitStore, type TransitState } from "./transitStore";
 
-// TEMP: mock deps until #32 (DI)
-export const scheduleStore = createScheduleStore(mockScheduleDeps);
-export const messageStore = createMessageStore(mockMessageDeps);
-export const checkInStore = createCheckInStore(mockCheckInDeps);
-export const authStore = createAuthStore(mockAuthDeps);
-export const settingsStore = createSettingsStore(mockSettingsDeps);
-export const placesStore = createPlacesStore(mockPlacesDeps);
+export const scheduleStore = createScheduleStore(scheduleDeps);
+export const messageStore = createMessageStore(messageDeps);
+export const checkInStore = createCheckInStore(checkInDeps);
+export const authStore = createAuthStore(authDeps);
+export const settingsStore = createSettingsStore(settingsDeps);
+export const placesStore = createPlacesStore(placesDeps);
 export const connectionStore = createConnectionStore({
-  network: mockNetworkService,
+  ...connectionDeps,
   onOnline: () => {
     void messageStore.getState().sync();
   },
 });
 
-// TEMP: mock deps until #32 (DI)
-// Event and transit data, not user data: left out of resetOnLogout on purpose.
-export const lineupStore = createLineupStore(mockLineupDeps);
-export const transitStore = createTransitStore(mockTransitDeps);
+export const lineupStore = createLineupStore(lineupDeps);
+export const transitStore = createTransitStore(transitDeps);
 
-// App-lifetime subscription: logout clears the user-scoped stores.
 resetOnLogout(authStore, [scheduleStore, messageStore, checkInStore, settingsStore, placesStore]);
 
 export function useScheduleStore<T>(selector: (state: ScheduleState) => T): T {
