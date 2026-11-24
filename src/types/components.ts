@@ -181,6 +181,8 @@ export interface IconButtonProps {
   accessibilityLabel: string; // required
   accessibilityHint?: string;
   selected?: boolean;
+  /** Accent fill on a dark surface (Composer send, S06). */
+  emphasis?: "accent";
   surface: ButtonSurface;
   disabled: boolean;
   onPress: () => void;
@@ -204,5 +206,81 @@ export interface StatusTagProps {
   tone: StatusTagTone;
   icon?: IconName;
   fill: "solid" | "outline" | "dashed";
+  testID?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* C12 · EmptyState                                                     */
+/* ------------------------------------------------------------------ */
+
+/** Board kinds + `loadError` (data could not be read, X-Stan „Błąd”). */
+export type EmptyStateKind =
+  | "noPlan"
+  | "noMessages"
+  | "noData"
+  | "downloadError"
+  | "noPlaces"
+  | "noDepartures"
+  | "noBadges"
+  | "loadError";
+
+export interface EmptyStateAction {
+  label: string;
+  onPress: () => void;
+  /** Accent fill (C12 „Udostępnij kod”, „Ponów”); outline otherwise. */
+  prominent?: boolean;
+  icon?: IconName;
+  disabledReason?: string;
+}
+
+export interface EmptyStateProps {
+  kind: EmptyStateKind;
+  eyebrow?: string;
+  title: string;
+  body: string;
+  primary?: EmptyStateAction;
+  secondary?: Omit<EmptyStateAction, "prominent" | "disabledReason">;
+  testID?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* C13 · SegmentedControl                                               */
+/* ------------------------------------------------------------------ */
+
+export interface SegmentedOption<T extends string> {
+  value: T;
+  label: string;
+  accessibilityLabel?: string;
+}
+
+export interface SegmentedControlProps<T extends string> {
+  groupLabel: string; // „Dzień festiwalu”
+  options: readonly SegmentedOption<T>[];
+  mode: "single" | "multi";
+  value: readonly T[];
+  look: "dayTabs" | "chips" | "stageToggles";
+  onChange: (value: readonly T[]) => void;
+}
+
+/* ------------------------------------------------------------------ */
+/* C02 · LeaveNowAlert                                                  */
+/* ------------------------------------------------------------------ */
+
+export type LeaveNowAlertMode = "soundAndVibration" | "vibrationOnly" | "muted";
+export type LeaveNowAlertKind = "stage" | "transit";
+
+/** C02 props without `animate` – the pulse comes with #34. */
+export interface LeaveNowAlertProps {
+  kind: LeaveNowAlertKind;
+  eyebrow: string; // „Za 12 min · Scena Główna”
+  meta: string; // „Wilga i Fale · 20:15 · 450 m”
+  /** Read once when the alert appears (C02 „ogłoszenie”). */
+  announcement: string;
+  mode: LeaveNowAlertMode;
+  snoozeMinutes: 5 | 10 | 15;
+  canSnooze: boolean;
+  onGuide: () => void;
+  onSnooze: () => void;
+  onMute: () => void;
   testID?: string;
 }

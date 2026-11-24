@@ -4,15 +4,15 @@ import type { Departure } from "@/domain/entities/Transit";
 
 import {
   FALLBACK_STAGE_ID,
-  findConflict,
   formatTime,
-  overlaps,
+  messageStatusOf,
   toDepartureRowProps,
   toMessageBubbleProps,
   toNowPassProps,
   toPerformanceCardProps,
   transitKindOf,
   walkMeta,
+  walkSecondsFor,
 } from "../mappers";
 
 const s1: Stage = { id: "s1", eventId: "e", name: "Główna", location: { latitude: 0, longitude: 0 } };
@@ -32,16 +32,16 @@ describe("formatTime", () => {
     expect(formatTime("2027-07-02T19:49:00Z")).toBe("21:49");
     expect(formatTime("2027-01-15T20:05:00Z")).toBe("21:05");
   });
+
+  it("never throws for an invalid date", () => {
+    expect(formatTime("not a date")).toBe("–");
+  });
 });
 
 describe("toPerformanceCardProps", () => {
   const now = new Date("2027-07-02T20:00:00+02:00");
 
-  it("detects a conflict and builds the status line from the other concert", () => {
-    expect(overlaps(hanna, mewy)).toBe(true);
-    expect(overlaps(wilga, hanna)).toBe(false); // ends exactly when the other starts
-    expect(findConflict(hanna, [wilga, mewy])).toBe(mewy);
-
+  it("builds the status line from the conflicting concert given by the caller", () => {
     const props = toPerformanceCardProps(hanna, s2, { inPlan: true, stageCodes, conflictWith: { concert: mewy, stage: s1 }, now });
     expect(props.state).toBe("conflict");
     expect(props.statusLine).toBe("Kolizja · S1 od 22:15");
@@ -124,20 +124,19 @@ describe("toDepartureRowProps", () => {
     fetchedAt: "2027-07-02T21:40:00+02:00",
   };
 
-  it("leave now when the walk eats the whole margin", () => {
-    const props = toDepartureRowProps(base, 231, now);
+  it("maps a live departure with the given state", () => {
+    const props = toDepartureRowProps(base, 231, "leaveNow", { now });
     expect(props).toMatchObject({ kind: "tram", state: "leaveNow", time: "21:49", inMinutes: "4 min", freshness: "live" });
+    expect(props.note).toBeUndefined();
   });
 
   it("keeps a missed departure", () => {
-    const props = toDepartureRowProps({ ...base, routeName: "SKM", departureAt: "2027-07-02T21:52:00+02:00" }, 462, now);
-    expect(props.state).toBe("missed");
-    expect(props.kind).toBe("skm");
+    const props = toDepartureRowProps({ ...base, routeName: "SKM", departureAt: "2027-07-02T21:52:00+02:00" }, 462, "missed", { now });
+    expect(props).toMatchObject({ state: "missed", kind: "skm", inMinutes: "7 min" });
   });
 
-  it("gives a leave-at note inside 15 minutes", () => {
-    const props = toDepartureRowProps({ ...base, routeName: "SKM", departureAt: "2027-07-02T22:07:00+02:00" }, 462, now);
-    expect(props.state).toBe("leaveAt");
+  it("gives a leave-at note", () => {
+    const props = toDepartureRowProps({ ...base, routeName: "SKM", departureAt: "2027-07-02T22:07:00+02:00" }, 462, "leaveAt", { now });
     expect(props.note).toBe("Wyjdź o 21:59");
   });
 
@@ -145,7 +144,8 @@ describe("toDepartureRowProps", () => {
     const props = toDepartureRowProps(
       { ...base, routeName: "6", departureAt: "2027-07-02T22:03:00+02:00", delaySeconds: 300 },
       231,
-      now,
+      "later",
+      { now },
     );
     expect(props).toMatchObject({ state: "later", time: "22:08", inMinutes: "23 min", note: "Opóźnienie · +5 min" });
   });
@@ -154,13 +154,35 @@ describe("toDepartureRowProps", () => {
     const props = toDepartureRowProps(
       { ...base, routeName: "N3", departureAt: "2027-07-02T23:58:00+02:00", delaySeconds: null },
       231,
-      new Date("2027-07-02T23:50:00+02:00"),
+      "later",
+      { now: new Date("2027-07-02T23:50:00+02:00") },
     );
     expect(props).toMatchObject({ kind: "night", freshness: "stale", inMinutes: "ok. 8 min", note: "Nocny · 300 m" });
   });
 
+  it("with data older than the TTL ignores the live delay", () => {
+    const props = toDepartureRowProps({ ...base, delaySeconds: 300 }, 231, "leaveNow", { now, timetableOnly: true });
+    expect(props).toMatchObject({ freshness: "stale", time: "21:49", inMinutes: "ok. 4 min", note: "Tramwaj · 300 m" });
+  });
+
   it("builds the stop meta from walking time", () => {
     expect(walkMeta(231)).toBe("300 m · 4 min");
+    expect(walkSecondsFor(300)).toBe(231);
+  });
+});
+
+describe("messageStatusOf", () => {
+  it.each([
+    ["sent", false, "sent"],
+    ["sent", true, "sent"],
+    ["queued", true, "sending"],
+    ["stale", true, "sending"],
+    ["failed", true, "sending"],
+    ["queued", false, "queued"],
+    ["stale", false, "stale"],
+    ["failed", false, "failed"],
+  ] as const)("%s, sending=%s → %s", (delivery, sending, status) => {
+    expect(messageStatusOf(delivery, sending)).toBe(status);
   });
 });
 
@@ -178,35 +200,33 @@ describe("toMessageBubbleProps", () => {
     sentAt: null,
   };
 
-  afterEach(() => {
-    jest.useRealTimers();
+  it("labels a queued message with its time", () => {
+    const props = toMessageBubbleProps(queued, { currentUserId: me, deliveryState: "queued" });
+    expect(props.status).toBe("queued");
+    expect(props.statusLabel).toBe("W kolejce · 21:10");
   });
 
-  it("is queued before 20 minutes and stale after", () => {
-    jest.useFakeTimers();
-
-    jest.setSystemTime(new Date("2027-07-02T21:29:00+02:00"));
-    const fresh = toMessageBubbleProps(queued, { currentUserId: me, staleAfterMin: 20 });
-    expect(fresh.status).toBe("queued");
-    expect(fresh.statusLabel).toBe("W kolejce · 21:10");
-
-    jest.setSystemTime(new Date("2027-07-02T21:50:00+02:00"));
-    const stale = toMessageBubbleProps(queued, { currentUserId: me, staleAfterMin: 20 });
+  it("labels a stale message with the minutes it waited", () => {
+    const now = new Date("2027-07-02T21:50:00+02:00");
+    const stale = toMessageBubbleProps(queued, { currentUserId: me, deliveryState: "stale", now });
     expect(stale.status).toBe("stale");
     expect(stale.statusLabel).toBe("Nieaktualna · 40 min w kolejce");
   });
 
-  it("derives failed and sending", () => {
-    const now = new Date("2027-07-02T21:15:00+02:00");
-    expect(toMessageBubbleProps({ ...queued, nextAttemptAt: null }, { currentUserId: me, now }).status).toBe("failed");
-    expect(
-      toMessageBubbleProps(queued, { currentUserId: me, now, sendingIds: new Set(["m"]) }).status,
-    ).toBe("sending");
+  it("shows failed and sending from the given state", () => {
+    expect(toMessageBubbleProps(queued, { currentUserId: me, deliveryState: "failed" })).toMatchObject({
+      status: "failed",
+      statusLabel: "Nie wysłano",
+    });
+    expect(toMessageBubbleProps(queued, { currentUserId: me, deliveryState: "stale", sending: true })).toMatchObject({
+      status: "sending",
+      statusLabel: "Wysyłanie…",
+    });
   });
 
   it("maps sent own and crew messages", () => {
     const sent: OutboxMessage = { ...queued, status: "sent", sentAt: "2027-07-02T21:11:00+02:00" };
-    expect(toMessageBubbleProps(sent, { currentUserId: me })).toMatchObject({
+    expect(toMessageBubbleProps(sent, { currentUserId: me, deliveryState: "sent" })).toMatchObject({
       author: "me",
       status: "sent",
       time: "21:11",
@@ -215,8 +235,8 @@ describe("toMessageBubbleProps", () => {
 
     const crew = toMessageBubbleProps(
       { ...sent, authorId: "u-kuba" },
-      { currentUserId: me, authorNames: { "u-kuba": "Kuba" } },
+      { currentUserId: me, deliveryState: "sent", senderName: "Ekipa" },
     );
-    expect(crew).toEqual({ id: "m", author: "crew", senderName: "Kuba", time: "21:11", text: sent.body });
+    expect(crew).toEqual({ id: "m", author: "crew", senderName: "Ekipa", time: "21:11", text: sent.body });
   });
 });

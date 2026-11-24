@@ -12,30 +12,29 @@ import type { User } from "@/domain/entities/User";
 import type { Unsubscribe } from "@/domain/entities/common";
 import { DomainError } from "@/domain/errors/DomainError";
 import type { IEventRepository } from "@/domain/repositories/IEventRepository";
+import type { ILocationService } from "@/domain/repositories/ILocationService";
 import type { IIdGenerator } from "@/domain/repositories/IIdGenerator";
 import type { IMessageGateway } from "@/domain/repositories/IMessageGateway";
 import type { INetworkService } from "@/domain/repositories/INetworkService";
 import type { IOutboxRepository } from "@/domain/repositories/IOutboxRepository";
 import type { IScheduleRepository } from "@/domain/repositories/IScheduleRepository";
+import type { ITransitRepository } from "@/domain/repositories/ITransitRepository";
 import type { AuthStoreDeps } from "@/store/authStore";
 import type { CheckInStoreDeps } from "@/store/checkInStore";
+import type { LineupStoreDeps } from "@/store/lineupStore";
 import type { MessageStoreDeps } from "@/store/messageStore";
 import type { ScheduleStoreDeps } from "@/store/scheduleStore";
+import type { TransitStoreDeps } from "@/store/transitStore";
 import { AddToScheduleUseCase } from "@/use-cases/AddToScheduleUseCase";
+import { GetNearbyStopsUseCase } from "@/use-cases/GetNearbyStopsUseCase";
 import type { CheckInResult } from "@/use-cases/CheckInUseCase";
 import { QueueMessageUseCase } from "@/use-cases/QueueMessageUseCase";
 import { RetryMessageUseCase } from "@/use-cases/RetryMessageUseCase";
 import { SyncOutboxUseCase } from "@/use-cases/SyncOutboxUseCase";
 
-import {
-  mockConcerts,
-  mockCurrentUserId,
-  mockEvent,
-  mockMessages,
-  mockPlannedConcertIds,
-  mockStages,
-  mockUsers,
-} from "./mockData";
+import { demoConcerts, demoEvent, demoMessages } from "./demoData";
+import { demoAlerts, demoDepartures, mockGatePosition } from "./demoTransit";
+import { mockCurrentUserId, mockPlannedConcertIds, mockStages, mockStops, mockUsers } from "./mockData";
 
 export const MOCK_DELAY_MS = 300;
 
@@ -60,6 +59,22 @@ async function write(): Promise<void> {
   }
 }
 
+let failNextRead = false;
+
+/** Makes the next mocked read (line-up, transit) reject once – demo of the error state. */
+export function failNextLoad(): void {
+  failNextRead = true;
+}
+
+/** Waits like a real device and throws if failNextLoad() was armed. */
+async function read(): Promise<void> {
+  await delay();
+  if (failNextRead) {
+    failNextRead = false;
+    throw new Error("Mock read failed (failNextLoad).");
+  }
+}
+
 let idCounter = 0;
 const idGenerator: IIdGenerator = {
   generate: () => {
@@ -77,15 +92,15 @@ let scheduleItems: ScheduleItem[] = mockPlannedConcertIds.map((concertId) => ({
   concertId,
   addedAt: "2027-06-20T12:00:00+02:00",
 }));
-let outbox: OutboxMessage[] = [...mockMessages];
+let outbox: OutboxMessage[] = [...demoMessages];
 let checkIns: CheckIn[] = [];
 const users: User[] = [...mockUsers];
 
 const eventRepository: IEventRepository = {
-  getCurrentEvent: async () => mockEvent,
+  getCurrentEvent: async () => demoEvent,
   getStages: async (eventId) => mockStages.filter((s) => s.eventId === eventId),
   getConcerts: async (eventId) =>
-    mockConcerts.filter((c) => c.eventId === eventId),
+    demoConcerts.filter((c) => c.eventId === eventId),
   getPoisInBounds: async () => [],
   saveEventPackage: async () => undefined,
 };
@@ -242,4 +257,54 @@ export const mockAuthDeps: AuthStoreDeps = {
     users.push(user);
     return user;
   },
+};
+
+export const mockLineupDeps: LineupStoreDeps = {
+  loadLineup: async (eventId) => {
+    await read();
+    const [event, stages, concerts] = await Promise.all([
+      eventRepository.getCurrentEvent(),
+      eventRepository.getStages(eventId),
+      eventRepository.getConcerts(eventId),
+    ]);
+    return { event: event?.id === eventId ? event : null, stages, concerts };
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* Transit                                                              */
+/* ------------------------------------------------------------------ */
+
+const transitRepository: ITransitRepository = {
+  getStopsInBounds: async (bounds) =>
+    mockStops.filter(
+      (stop) =>
+        stop.location.latitude >= bounds.minLatitude &&
+        stop.location.latitude <= bounds.maxLatitude &&
+        stop.location.longitude >= bounds.minLongitude &&
+        stop.location.longitude <= bounds.maxLongitude,
+    ),
+  saveStops: async () => undefined,
+  getDepartures: async (stopId) => demoDepartures().filter((d) => d.stopId === stopId),
+  saveDepartures: async () => undefined,
+  getAlerts: async () => demoAlerts(),
+  saveAlerts: async () => undefined,
+};
+
+/** GPS fixed at the festival gate. */
+const locationService: ILocationService = {
+  requestPermissions: async () => true,
+  getCurrentPosition: async () => mockGatePosition,
+  watchPosition: async () => () => undefined,
+  watchHeading: async () => () => undefined,
+};
+
+export const mockTransitDeps: TransitStoreDeps = {
+  getNearbyStops: new GetNearbyStopsUseCase(transitRepository, locationService),
+  loadDepartures: async (stopIds) => {
+    await read();
+    const lists = await Promise.all(stopIds.map((id) => transitRepository.getDepartures(id)));
+    return lists.flat();
+  },
+  loadAlerts: () => transitRepository.getAlerts(),
 };

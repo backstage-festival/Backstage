@@ -190,4 +190,156 @@ export const strings = {
       guideHint: "Prowadzi do przystanku",
     },
   },
+
+  /** X-Stan · shared loading state */
+  screen: {
+    loading: "Wczytuję dane z telefonu…",
+  },
+
+  /** S04 · Plan screen */
+  planScreen: {
+    title: "Plan",
+    /** Mon–Sun short names, index = Date.getUTCDay(). */
+    weekdays: ["Nd", "Pn", "Wt", "Śr", "Czw", "Pt", "Sob"],
+    /** „Pt 2.07” */
+    day: (weekday: string, day: number, month: string) => `${weekday} ${day}.${month}`,
+    /** „Pt 2.07 · 20:03” */
+    eyebrow: (day: string, time: string) => `${day} · ${time}`,
+    now: (time: string) => `Teraz · ${time}`,
+    next: "Dalej",
+    played: (n: number) => `Zagrane · ${n}`,
+    alsoNow: (artist: string, stageNumber: number) => `${artist} · S${stageNumber}`,
+    dayGroup: "Dzień festiwalu",
+    scopeGroup: "Zakres",
+    scopeAll: "Wszystko",
+    scopeMine: "Mój plan",
+    stageGroup: "Sceny",
+    noStageConcerts: "Nic nie gra na tej scenie tego dnia",
+    prepare: "Przygotuj się",
+    badges: "Odznaki",
+    accessibility: "Dostępność",
+    login: "Logowanie",
+    empty: {
+      noPlanEyebrow: (day: string) => `Mój plan · ${day}`,
+      noPlanTitle: "Twój plan jest pusty",
+      noPlanBody: "Dodaj koncerty przyciskiem obok nazwy. Gdy coś będzie w planie, powiemy Ci, kiedy wyjść spod innej sceny.",
+      showAll: (n: number) => `Pokaż wszystkie koncerty · ${n}`,
+      noLineupEyebrow: "Brak danych",
+      noLineupTitle: "Brak line-upu w telefonie",
+      noLineupBody: "Line-up dla tego festiwalu nie został pobrany. Pobierz go, póki masz zasięg.",
+    },
+    note: {
+      /** TalkBack for the short card line „Kolizja · S2 od 02:00”. */
+      conflictA11y: (artist: string, stageNumber: number, stageName: string, time: string) =>
+        `Kolizja z ${artist}, scena ${stageNumber}${stageName ? ` ${stageName}` : ""}, od ${time}`,
+      addAnyway: "Dodaj mimo to",
+      /** Short tag texts – one line at 100 % even on a 320 dp screen. */
+      saveFailed: "Nie zapisano zmiany",
+      removeFailed: "Nie usunięto z planu",
+      concertNotFound: "Brak koncertu w line-upie",
+      loadFailed: "Nie wczytano planu",
+      saveFailedA11y: "Nie zapisano zmiany w planie. Spróbuj jeszcze raz.",
+      removeFailedA11y: "Nie usunięto koncertu z planu. Spróbuj jeszcze raz.",
+      concertNotFoundA11y: "Nie ma tego koncertu w line-upie.",
+      loadFailedA11y: "Nie wczytano Twojego planu.",
+      dismiss: "Zamknij komunikat",
+    },
+    a11y: {
+      stage: (stageNumber: number, stageName: string) => `Scena ${stageNumber}, ${stageName}`,
+      playedHint: "Pokazuje zagrane koncerty",
+      playedHideHint: "Chowa zagrane koncerty",
+      addAnywayHint: "Dodaje koncert mimo kolizji z innym z planu",
+    },
+  },
+
+  /** C02 · LeaveNowAlert */
+  leaveNow: {
+    /** „Za 12 min · Scena Główna” */
+    eyebrow: (minutes: number, stageName: string) => `Za ${minutes} min · Scena ${stageName}`,
+    title: "Wyjdź teraz",
+    /** „Wilga i Fale · 20:15 · 450 m” */
+    meta: (artist: string, time: string, distanceM: number) => `${artist} · ${time} · ${distanceM} m`,
+    guide: "Prowadź",
+    snooze: (minutes: number) => `Za ${minutes} min`,
+    snoozeLong: (minutes: number) => `Przypomnij za ${minutes} min`,
+    mute: "Wycisz",
+    vibrationOnly: "Tylko wibracja",
+    muted: "Alerty wyciszone · widać je w planie",
+    a11y: {
+      /** „Wyjdź teraz. Wilga i Fale na scenie Główna za 12 minut. 450 metrów stąd.” */
+      announce: (artist: string, stageName: string, minutes: number, distanceM: number) =>
+        `Wyjdź teraz. ${artist} na scenie ${stageName} za ${minutes} ${minutesWord(minutes)}. ` +
+        `${distanceM} ${plural(distanceM, "metr", "metry", "metrów")} stąd.`,
+      guideHint: "Otwiera prowadzenie do sceny",
+      snooze: (minutes: number) => `Przypomnij za ${minutes} ${minutesWord(minutes)}`,
+      snoozeHint: "Alert wróci później, jeśli zdążysz",
+      snoozeDisabled: "Za mało czasu, żeby odłożyć alert",
+      mute: "Wycisz alerty wyjścia",
+      muteHint: "Alerty będą widoczne tylko w planie, bez dźwięku i wibracji",
+    },
+  },
+
+  /** S06 · Crew screen */
+  crewScreen: {
+    title: "Ekipa",
+    codeLabel: "Kod ekipy",
+    /** „STK7Q4M” → „STK·7Q4M” */
+    code: (code: string) => `${code.slice(0, 3)}·${code.slice(3)}`,
+    members: (names: readonly string[]) => [...names, "Ty"].join(" · "),
+    onlyYou: "Na razie tylko Ty",
+    /** TEMP: no display name yet (#71 Q10) */
+    fallbackName: "Ekipa",
+    queueTitle: (n: number) => `${n} ${plural(n, "czeka", "czekają", "czeka")} na wysyłkę`,
+    queueBody: (n: number) => (n === 1 ? "Wyśle się sama przy zasięgu" : "Wyślą się same przy zasięgu"),
+    placeholder: "Napisz do ekipy…",
+    empty: {
+      title: "Brak wiadomości",
+      body: (code: string) =>
+        `Wyślij znajomym kod ${code}. Kto go wpisze, dołączy do czatu. Wiadomości napisane bez zasięgu poczekają w kolejce i wyślą się same.`,
+      share: "Udostępnij kod",
+      errorEyebrow: "Nie wczytano wiadomości",
+      errorTitle: "Nie udało się otworzyć czatu",
+      errorBody: "Wiadomości nie zostały wczytane z telefonu. Spróbuj jeszcze raz.",
+      retry: "Spróbuj ponownie",
+    },
+    a11y: {
+      /** „Kod ekipy: S T K 7 Q 4 M” */
+      code: (code: string) => `Kod ekipy: ${code.split("").join(" ")}`,
+      share: "Udostępnij kod ekipy",
+      queue: (n: number) =>
+        `${n} ${plural(n, "czeka", "czekają", "czeka")} na wysyłkę. ${n === 1 ? "Wyśle się sama" : "Wyślą się same"} przy zasięgu.`,
+      input: "Wiadomość do ekipy",
+      send: "Wyślij",
+      sendHint: "Bez zasięgu wiadomość trafi do kolejki",
+      sendDisabled: "Napisz wiadomość, żeby ją wysłać",
+    },
+  },
+
+  /** S08 · Return screen */
+  returnScreen: {
+    title: "Powrót",
+    dataFrom: (time: string) => `Dane z ${time}`,
+    dataStale: "Dane nieaktualne",
+    alertTitle: (title: string) => `Utrudnienia · ${title}`,
+    /** „Ostatnie dane z 21:40 · 2 h 10 min temu” */
+    staleTitle: (time: string, age: string) => `Ostatnie dane z ${time} · ${age} temu`,
+    staleBody: (time: string) => `Pokazujemy rozkład, nie odjazdy na żywo. Opóźnień i zmian po ${time} nie widać.`,
+    age: (hours: number, minutes: number) => (hours > 0 ? `${hours} h ${minutes} min` : `${minutes} min`),
+    empty: {
+      noDataEyebrow: "Odjazdy",
+      noDataTitle: "Brak rozkładu w telefonie",
+      noDataBody: "Odjazdy nie zostały pobrane. Pobierz je w „Przygotuj się”, póki masz zasięg.",
+      prepare: "Przygotuj się",
+      nothingTitle: "Dziś już nic nie odjeżdża",
+      nothingBody: "Pierwsze odjazdy rano. Najbliższy postój taksówek: Brama 1.",
+      showGate: "Pokaż bramę 1",
+      locationEyebrow: "Brak lokalizacji",
+      locationTitle: "Nie wiem, gdzie jesteś",
+      locationBody: "Włącz lokalizację, żeby znaleźć najbliższe przystanki.",
+      errorEyebrow: "Nie wczytano odjazdów",
+      errorTitle: "Nie udało się wczytać odjazdów",
+      errorBody: "Spróbuj jeszcze raz. Rozkład pobierzesz też w „Przygotuj się”.",
+      retry: "Spróbuj ponownie",
+    },
+  },
 } as const;

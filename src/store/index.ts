@@ -3,17 +3,21 @@ import { useStore } from "zustand";
 import {
   mockAuthDeps,
   mockCheckInDeps,
+  mockLineupDeps,
   mockMessageDeps,
   mockNetworkService,
   mockScheduleDeps,
+  mockTransitDeps,
 } from "@/mocks/mockStoreDeps";
 
 import { type AuthState, createAuthStore } from "./authStore";
 import { type CheckInState, createCheckInStore } from "./checkInStore";
 import { type ConnectionState, createConnectionStore } from "./connectionStore";
+import { createLineupStore, type LineupState } from "./lineupStore";
 import { createMessageStore, type MessageState } from "./messageStore";
 import { resetOnLogout } from "./resetOnLogout";
 import { createScheduleStore, type ScheduleState } from "./scheduleStore";
+import { createTransitStore, type TransitState } from "./transitStore";
 
 // TEMP: mock deps until #32 (DI)
 export const scheduleStore = createScheduleStore(mockScheduleDeps);
@@ -26,6 +30,11 @@ export const connectionStore = createConnectionStore({
     void messageStore.getState().sync();
   },
 });
+
+// TEMP: mock deps until #32 (DI)
+// Event and transit data, not user data: left out of resetOnLogout on purpose.
+export const lineupStore = createLineupStore(mockLineupDeps);
+export const transitStore = createTransitStore(mockTransitDeps);
 
 // App-lifetime subscription: logout clears the user-scoped stores.
 resetOnLogout(authStore, [scheduleStore, messageStore, checkInStore]);
@@ -52,11 +61,21 @@ export function useAuthStore<T>(selector: (state: AuthState) => T): T {
   return useStore(authStore, selector);
 }
 
+export function useLineupStore<T>(selector: (state: LineupState) => T): T {
+  return useStore(lineupStore, selector);
+}
+
+export function useTransitStore<T>(selector: (state: TransitState) => T): T {
+  return useStore(transitStore, selector);
+}
+
 export { selectIsSignedIn } from "./authStore";
 export type { AuthError, SessionUser } from "./authStore";
 export { selectIsCheckedIn, selectIsCheckInPending } from "./checkInStore";
 export type { CheckInError } from "./checkInStore";
 export { toConnectionBarState } from "./connectionStore";
+export { selectHasLineup } from "./lineupStore";
+export type { Lineup, LineupError } from "./lineupStore";
 export {
   selectDeliveryState,
   selectIsMessagePending,
@@ -65,3 +84,10 @@ export {
 export type { MessageError } from "./messageStore";
 export { selectIsPlanned, selectIsSchedulePending } from "./scheduleStore";
 export type { ScheduleError } from "./scheduleStore";
+export {
+  departsAtMs,
+  selectDepartureState,
+  selectTransitFreshness,
+  selectUpcomingDepartures,
+} from "./transitStore";
+export type { TransitError } from "./transitStore";
