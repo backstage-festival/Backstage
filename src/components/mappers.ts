@@ -6,10 +6,12 @@ import type { Concert, Stage } from "@/domain/entities/Event";
 import type { OutboxMessage } from "@/domain/entities/OutboxMessage";
 import type { Departure } from "@/domain/entities/Transit";
 import type { MessageDeliveryState } from "@/domain/utils/messageStaleness";
+import type { LeaveNowAlertSetting } from "@/store/settingsStore";
 import { strings } from "@/strings";
 import type {
   DepartureRowProps,
   DepartureState,
+  LeaveNowAlertMode,
   MessageBubbleProps,
   MessageStatus,
   NowPassProps,
@@ -284,4 +286,20 @@ export function toMessageBubbleProps(
   }
 
   return { id: message.id, author: "me", time, text: message.body, status, statusLabel };
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings (S10)                                                       */
+/* ------------------------------------------------------------------ */
+
+/** user_settings.leave_alert_mode → C02 alert mode. */
+export function leaveNowModeOf(setting: LeaveNowAlertSetting): LeaveNowAlertMode {
+  switch (setting) {
+    case "sound":
+      return "soundAndVibration";
+    case "vibrate":
+      return "vibrationOnly";
+    case "muted":
+      return "muted";
+  }
 }

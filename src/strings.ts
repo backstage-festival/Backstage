@@ -342,4 +342,61 @@ export const strings = {
       retry: "Spróbuj ponownie",
     },
   },
+
+  /** S10 · Accessibility settings */
+  settings: {
+    back: "Ustawienia",
+    title: "Dostępność",
+    preview: "Podgląd na żywo",
+    contrast: {
+      section: "Kontrast",
+      title: "Wysoki kontrast",
+      description: "Czysta czerń i biel, grubsze ramki, bez szarych opisów.",
+    },
+    colors: {
+      section: "Kolory",
+      title: "Wzory zamiast koloru",
+      description: "Statusy dostają wzór, ramkę i dłuższy opis. Pomaga przy zaburzeniach widzenia barw.",
+    },
+    textSize: {
+      section: "Rozmiar tekstu",
+      group: "Rozmiar tekstu",
+      /** SegmentedControl has one text line, so „A” and the percentage share it. */
+      standard: "A 100%",
+      large: "A 150%",
+      xlarge: "A 200%",
+      a11y: {
+        standard: "100 procent",
+        large: "150 procent",
+        xlarge: "200 procent",
+      },
+      description: "Działa razem z rozmiarem czcionki w systemie. Układ przechodzi w jedną kolumnę, nic nie przewija się w bok.",
+    },
+    motion: {
+      section: "Ruch",
+      title: "Ogranicz animacje",
+      description: "Alert nie pulsuje, tylko ma podwójną ramkę. Ekrany zmieniają się bez przejść. Na start tak jak w systemie.",
+    },
+    alerts: {
+      section: "Alerty „Wyjdź teraz”",
+      group: "Alerty „Wyjdź teraz”",
+      sound: "Dźwięk i wibracja",
+      vibrate: "Tylko wibracja",
+      muted: "Wyciszone · widać je tylko w Planie",
+    },
+    snooze: {
+      section: "Odłóż alert o",
+      group: "Odłóż alert o",
+      option: (minutes: number) => `${minutes} min`,
+      a11y: (minutes: number) => `${minutes} ${minutesWord(minutes)}`,
+    },
+    saveFailed: "Nie zapisano zmiany",
+    saveFailedA11y: "Nie zapisano zmiany ustawienia. Przywrócono poprzednią wartość.",
+    loadFailed: "Nie wczytano ustawień",
+    loadFailedA11y: "Nie wczytano Twoich ustawień. Działają domyślne.",
+    a11y: {
+      back: "Wróć do ustawień",
+      preview: "Podgląd: tak wygląda plan z wybranymi ustawieniami",
+    },
+  },
 } as const;

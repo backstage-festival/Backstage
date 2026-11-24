@@ -84,7 +84,8 @@ export function LeaveNowAlert({
   const muted = mode === "muted";
 
   useEffect(() => {
-    if (!muted) AccessibilityInfo.announceForAccessibility(announcement);
+    // An empty announcement (S10 live preview) is never read.
+    if (!muted && announcement !== "") AccessibilityInfo.announceForAccessibility(announcement);
     // Announce once per alert, not on every re-render.
   }, [announcement, muted]);
 
