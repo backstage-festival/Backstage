@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 /**
  * Component props – exactly as on the C boards (C01, C03, C04, C05, C09, C11).
  * UI-only types (TransitKind, StageId, IconName) live here, not in src/domain.
@@ -259,6 +261,8 @@ export interface SegmentedControlProps<T extends string> {
   mode: "single" | "multi";
   value: readonly T[];
   look: "dayTabs" | "chips" | "stageToggles";
+  /** single only: „tab” for switching screen parts (S01 Logowanie / Rejestracja). Default radio. */
+  segmentRole?: "radio" | "tab";
   onChange: (value: readonly T[]) => void;
 }
 
@@ -371,4 +375,39 @@ export interface ConfirmDialogProps {
   confirmLabel: string; // destructive
   onCancel: () => void;
   onConfirm: () => void;
+}
+
+/* ------------------------------------------------------------------ */
+/* S01 · TextField                                                      */
+/* ------------------------------------------------------------------ */
+
+export interface TextFieldProps {
+  label: string; // „Login”
+  value: string;
+  onChangeText: (value: string) => void;
+  /** Error frame 2.5 dp + this text under the field, also read by TalkBack. */
+  error?: string;
+  /** Error frame without text (S01: both fields on wrong credentials). */
+  invalid?: boolean;
+  /** Password: hidden text + eye / eyeOff IconButton. */
+  secure?: boolean;
+  autoComplete: "username" | "current-password" | "new-password" | "off";
+  textContentType: "username" | "password" | "newPassword" | "none";
+  returnKeyType?: "next" | "done" | "go";
+  onSubmitEditing?: () => void;
+  editable: boolean;
+  testID?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* PassFrame – laminate pass shell (C01 NowPass, C08 tent, S01)          */
+/* ------------------------------------------------------------------ */
+
+export interface PassFrameProps {
+  band: string; // „All access”
+  bandTrailing?: string; // „2–4.07.2027”
+  /** One TalkBack stop for the whole pass when set (S01); otherwise children are read. */
+  accessibilityLabel?: string;
+  children: ReactNode;
+  testID?: string;
 }

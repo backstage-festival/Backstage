@@ -17,13 +17,14 @@ interface SegmentProps<T extends string> {
   option: SegmentedOption<T>;
   selected: boolean;
   single: boolean;
+  tab: boolean;
   look: Look;
   theme: Theme;
   level: TextLevel;
   onPress: (value: T) => void;
 }
 
-function SegmentBase<T extends string>({ option, selected, single, look, theme, level, onPress }: SegmentProps<T>) {
+function SegmentBase<T extends string>({ option, selected, single, tab, look, theme, level, onPress }: SegmentProps<T>) {
   const c = theme.colors;
   const handlePress = useCallback(() => onPress(option.value), [onPress, option.value]);
   const foreground = selected ? c.textOnLaminate : c.textPrimary;
@@ -47,9 +48,9 @@ function SegmentBase<T extends string>({ option, selected, single, look, theme, 
   return (
     <Pressable
       onPress={handlePress}
-      accessibilityRole={single ? "radio" : "button"}
+      accessibilityRole={tab ? "tab" : single ? "radio" : "button"}
       accessibilityLabel={option.accessibilityLabel ?? option.label}
-      accessibilityState={single ? { checked: selected } : { selected }}
+      accessibilityState={single && !tab ? { checked: selected } : { selected }}
       style={({ pressed }) => [frame, pressed && !selected ? { backgroundColor: c.surfaceRaised } : null]}
     >
       <Text allowFontScaling={false} style={[textStyle(textName, level), { color: foreground }]}>
@@ -71,10 +72,12 @@ export function SegmentedControl<T extends string>({
   mode,
   value,
   look,
+  segmentRole = "radio",
   onChange,
 }: SegmentedControlProps<T>) {
   const { theme, level } = useTheme();
   const single = mode === "single";
+  const tab = single && segmentRole === "tab";
 
   const handlePress = useCallback(
     (picked: T) => {
@@ -89,7 +92,7 @@ export function SegmentedControl<T extends string>({
 
   return (
     <View
-      accessibilityRole={single ? "radiogroup" : undefined}
+      accessibilityRole={tab ? "tablist" : single ? "radiogroup" : undefined}
       accessibilityLabel={groupLabel}
       style={[
         look === "dayTabs" ? styles.dayTabs : styles.row,
@@ -105,6 +108,7 @@ export function SegmentedControl<T extends string>({
           option={option}
           selected={value.includes(option.value)}
           single={single}
+          tab={tab}
           look={look}
           theme={theme}
           level={level}
