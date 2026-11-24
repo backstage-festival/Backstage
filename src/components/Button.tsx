@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "@/theme/ThemeProvider";
@@ -101,7 +102,13 @@ export function buttonColors(
  * C09 · Button. One primary per screen. Destructive = × icon + word.
  * When disabled, the reason is shown under the button (bodyS) and read as hint.
  */
+/** C09 props plus a ref to the pressable (dialogs move TalkBack focus to it). */
+export interface ButtonElementProps extends ButtonProps {
+  ref?: Ref<View>;
+}
+
 export function Button({
+  ref,
   label,
   variant,
   surface,
@@ -111,7 +118,7 @@ export function Button({
   width,
   accessibilityHint,
   onPress,
-}: ButtonProps) {
+}: ButtonElementProps) {
   const { theme, level } = useTheme();
   const { scale, onPressIn, onPressOut } = usePressScale();
   const colors = buttonColors(theme, variant, surface, disabled);
@@ -123,6 +130,7 @@ export function Button({
   return (
     <View style={fill ? styles.fill : styles.hug}>
       <Pressable
+        ref={ref}
         onPress={onPress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
