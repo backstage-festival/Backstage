@@ -62,13 +62,25 @@ export function IconButton({
   accessibilityHint,
   selected,
   emphasis,
+  bare = false,
   surface,
   disabled,
   onPress,
 }: IconButtonProps) {
   const { theme } = useTheme();
   const { scale, onPressIn, onPressOut } = usePressScale();
-  const colors = iconButtonColors(theme, surface, selected === true, disabled, emphasis);
+  const framed = iconButtonColors(theme, surface, selected === true, disabled, emphasis);
+  // bare: no frame and no fill – the eye in S01, ⋯ in C08. Pressed = a faint fill.
+  const colors = bare
+    ? {
+        ...framed,
+        background: "transparent",
+        backgroundPressed: surface === "dark" ? theme.colors.surfaceRaised : theme.colors.laminateTrack,
+        foreground: disabled ? theme.colors.textDisabled : surface === "dark" ? theme.colors.textSecondary : theme.colors.textOnLaminate,
+        border: "transparent",
+        borderWidth: 0,
+      }
+    : framed;
 
   return (
     <Pressable

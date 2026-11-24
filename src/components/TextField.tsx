@@ -20,7 +20,7 @@ export interface TextFieldElementProps extends TextFieldProps {
 
 /**
  * S01 text field: label above, input (min. 52 dp), error frame and text under
- * the field. Password fields get an eye / eyeOff button („Pokaż hasło” /
+ * the field (E01: mono uppercase). Password fields get a frameless eye / eyeOff button („Pokaż hasło” /
  * „Ukryj hasło”). TalkBack: „Hasło, hasło ukryte” + „pole edycji” from Android;
  * the error is part of the label, so it is read when the focus comes back.
  */
@@ -31,6 +31,7 @@ export function TextField({
   onChangeText,
   error,
   invalid = false,
+  accessibilityError,
   secure = false,
   autoComplete,
   textContentType,
@@ -47,14 +48,15 @@ export function TextField({
   const masked = secure && hidden;
 
   const baseLabel = masked ? strings.auth.a11y.passwordHidden(label) : label;
-  const a11yLabel = error ? strings.auth.a11y.withError(baseLabel, error) : baseLabel;
+  const spokenError = error ?? accessibilityError;
+  const a11yLabel = spokenError ? strings.auth.a11y.withError(baseLabel, spokenError) : baseLabel;
 
   return (
     <View style={styles.field}>
       <Text
         allowFontScaling={false}
         importantForAccessibility="no"
-        style={[textStyle("label", level), { color: c.textPrimary }]}
+        style={[textStyle("label", level), { color: c.textSecondary }]}
       >
         {label}
       </Text>
@@ -93,6 +95,7 @@ export function TextField({
             icon={hidden ? "eye" : "eyeOff"}
             accessibilityLabel={hidden ? strings.auth.a11y.showPassword : strings.auth.a11y.hidePassword}
             surface="dark"
+            bare
             disabled={false}
             onPress={toggle}
           />
@@ -101,7 +104,7 @@ export function TextField({
       {error ? (
         <View style={styles.error} importantForAccessibility="no-hide-descendants">
           <Icon name="close" size={ERROR_ICON} color={c.error} />
-          <Text allowFontScaling={false} style={[textStyle("bodyS", level), styles.shrink, { color: c.error }]}>
+          <Text allowFontScaling={false} style={[textStyle("statusMeta", level), styles.shrink, { color: c.error }]}>
             {error}
           </Text>
         </View>

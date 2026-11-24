@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import type { TextStyleName } from "@/theme/theme";
+
 /**
  * Component props – exactly as on the C boards (C01, C03, C04, C05, C09, C11).
  * UI-only types (TransitKind, StageId, IconName) live here, not in src/domain.
@@ -78,6 +80,8 @@ export interface PerformanceCardProps {
   statusLine?: string; // „Kolizja · S1 od 22:15”
   onPress: (id: string) => void; // opens the modal
   onTogglePlan: (id: string) => void; // optimistic
+  /** false hides the add / remove button (S10 preview). Default true. */
+  showPlanToggle?: boolean;
   testID?: string;
 }
 
@@ -163,7 +167,8 @@ export interface StopCardProps {
 /* C09 · Button + IconButton                                            */
 /* ------------------------------------------------------------------ */
 
-export type ButtonVariant = "primary" | "secondary" | "destructive" | "ghost";
+/** link = mono text button, left-aligned, no padding (S01 „Nie pamiętasz hasła?”, „← Miejsca”). */
+export type ButtonVariant = "primary" | "secondary" | "destructive" | "ghost" | "link";
 export type ButtonSurface = "dark" | "laminate" | "accent";
 
 export interface ButtonProps {
@@ -175,6 +180,8 @@ export interface ButtonProps {
   disabledReason?: string; // required when disabled
   width: "fill" | "hug";
   accessibilityHint?: string;
+  /** link only: underlined label (S01). */
+  underline?: boolean;
   onPress: () => void;
 }
 
@@ -185,6 +192,8 @@ export interface IconButtonProps {
   selected?: boolean;
   /** Accent fill on a dark surface (Composer send, S06). */
   emphasis?: "accent";
+  /** No frame, only the icon in the 48 × 48 field (S01 eye, C08 ⋯). */
+  bare?: boolean;
   surface: ButtonSurface;
   disabled: boolean;
   onPress: () => void;
@@ -253,6 +262,10 @@ export interface SegmentedOption<T extends string> {
   value: T;
   label: string;
   accessibilityLabel?: string;
+  /** joined only: second line under the label (S10 „100%”). */
+  sublabel?: string;
+  /** joined only: text style of the label (S10 „A” in three sizes). */
+  labelStyle?: TextStyleName;
 }
 
 export interface SegmentedControlProps<T extends string> {
@@ -260,7 +273,8 @@ export interface SegmentedControlProps<T extends string> {
   options: readonly SegmentedOption<T>[];
   mode: "single" | "multi";
   value: readonly T[];
-  look: "dayTabs" | "chips" | "stageToggles";
+  /** joined = one frame, segments without gaps (S01, S10 text size). */
+  look: "dayTabs" | "chips" | "stageToggles" | "joined";
   /** single only: „tab” for switching screen parts (S01 Logowanie / Rejestracja). Default radio. */
   segmentRole?: "radio" | "tab";
   onChange: (value: readonly T[]) => void;
@@ -286,11 +300,13 @@ export interface LeaveNowAlertProps {
   onGuide: () => void;
   onSnooze: () => void;
   onMute: () => void;
+  /** S10 live preview (E11): no mute button. */
+  preview?: boolean;
   testID?: string;
 }
 
 /* ------------------------------------------------------------------ */
-/* S10 · SettingSwitch + RadioGroup                                     */
+/* S10 · SettingSwitch + RadioGroup                                    */
 /* ------------------------------------------------------------------ */
 
 export interface SettingSwitchProps {
@@ -357,6 +373,8 @@ export interface CompassArrowProps {
   walk: string | null; // „3 min”
   accuracy: string; // „±8 m”
   targetName: string;
+  /** bodyM under the meta line; absent or empty = hidden (tent until SavedPlace has a description). */
+  description?: string;
   /** Throttled label (C06: every 10 s or on a > 30° turn), polite live region. */
   accessibilityLabel: string;
   testID?: string;
@@ -389,6 +407,8 @@ export interface TextFieldProps {
   error?: string;
   /** Error frame without text (S01: both fields on wrong credentials). */
   invalid?: boolean;
+  /** Read by TalkBack only, when the screen shows the error elsewhere (S01: unmet password hints). `error` wins. */
+  accessibilityError?: string;
   /** Password: hidden text + eye / eyeOff IconButton. */
   secure?: boolean;
   autoComplete: "username" | "current-password" | "new-password" | "off";
@@ -406,6 +426,8 @@ export interface TextFieldProps {
 export interface PassFrameProps {
   band: string; // „All access”
   bandTrailing?: string; // „2–4.07.2027”
+  /** Band label font: condensed (S01 „ALL ACCESS”) or mono (tent, default). Trailing label is always mono. */
+  bandLook?: "condensed" | "mono";
   /** One TalkBack stop for the whole pass when set (S01); otherwise children are read. */
   accessibilityLabel?: string;
   children: ReactNode;

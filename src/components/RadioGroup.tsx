@@ -29,17 +29,18 @@ function RadioRowBase<T extends string>({ option, checked, theme, level, onPress
       accessibilityState={{ checked }}
       style={({ pressed }) => [
         styles.row,
-        { minHeight: size.control[level] },
+        { minHeight: size.control[level], borderBottomColor: c.divider, borderBottomWidth: theme.borderWidth.hairline },
         pressed ? { backgroundColor: c.surfaceRaised } : null,
       ]}
     >
       <View
         style={[
           styles.mark,
-          { borderColor: checked ? c.accent : c.border, borderWidth: theme.borderWidth.icon },
+          // E11: the checked mark is light, not accent (one accent per screen).
+          { borderColor: checked ? c.textPrimary : c.border, borderWidth: theme.borderWidth.icon },
         ]}
       >
-        {checked ? <View style={[styles.dot, { backgroundColor: c.accent }]} /> : null}
+        {checked ? <View style={[styles.dot, { backgroundColor: c.textPrimary }]} /> : null}
       </View>
       <View style={styles.text}>
         <Text allowFontScaling={false} style={[textStyle("settingTitle", level), { color: c.textPrimary }]}>
@@ -67,7 +68,7 @@ export function RadioGroup<T extends string>({ groupLabel, options, value, onCha
     [value, onChange],
   );
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel={groupLabel} style={styles.group}>
+    <View accessibilityRole="radiogroup" accessibilityLabel={groupLabel}>
       {options.map((option) => (
         <RadioRow
           key={option.value}
@@ -83,13 +84,11 @@ export function RadioGroup<T extends string>({ groupLabel, options, value, onCha
 }
 
 const styles = StyleSheet.create({
-  group: { gap: spacing.s1 },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.s3,
-    paddingVertical: spacing.s2,
-    borderRadius: radius.button,
+    paddingVertical: spacing.s3,
   },
   mark: {
     width: MARK,

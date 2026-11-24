@@ -7,7 +7,7 @@ import type { SettingSwitchProps } from "@/types/components";
 
 import { Icon } from "./Icon";
 
-/** Switch track 52 × 32, thumb 24 (no animation – the thumb jumps, H03-safe). */
+/** Switch track 52 × 32, square thumb 24 (E11; no animation – the thumb jumps, H03-safe). */
 const TRACK = { width: 52, height: 32 } as const;
 const THUMB = 24;
 const THUMB_ICON = 16;
@@ -32,7 +32,7 @@ function SettingSwitchBase({ title, description, value, onValueChange, testID }:
       accessibilityState={{ checked: value }}
       style={({ pressed }) => [
         styles.row,
-        { minHeight: size.listRowMin },
+        { minHeight: size.listRowMin, borderBottomColor: c.divider, borderBottomWidth: theme.borderWidth.hairline },
         level === 2 ? styles.stacked : null,
         pressed ? { backgroundColor: c.surfaceRaised } : null,
       ]}
@@ -52,7 +52,7 @@ function SettingSwitchBase({ title, description, value, onValueChange, testID }:
           styles.track,
           value
             ? { backgroundColor: c.accent, justifyContent: "flex-end" }
-            : { borderColor: c.border, borderWidth: theme.borderWidth.control, justifyContent: "flex-start" },
+            : { borderColor: c.textPrimary, borderWidth: theme.borderWidth.control, justifyContent: "flex-start" },
         ]}
       >
         <View style={[styles.thumb, { backgroundColor: value ? c.textOnAccent : c.textSecondary }]}>
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   track: {
     width: TRACK.width,
     height: TRACK.height,
-    borderRadius: radius.round,
+    borderRadius: radius.tag,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: (TRACK.height - THUMB) / 2,
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   thumb: {
     width: THUMB,
     height: THUMB,
-    borderRadius: radius.round,
+    borderRadius: radius.tag,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -27,7 +27,8 @@ interface SegmentProps<T extends string> {
 function SegmentBase<T extends string>({ option, selected, single, tab, look, theme, level, onPress }: SegmentProps<T>) {
   const c = theme.colors;
   const handlePress = useCallback(() => onPress(option.value), [onPress, option.value]);
-  const foreground = selected ? c.textOnLaminate : c.textPrimary;
+  const joined = look === "joined";
+  const foreground = selected ? c.textOnLaminate : joined ? c.textSecondary : c.textPrimary;
 
   const frame: StyleProp<ViewStyle> =
     look === "dayTabs"
@@ -39,11 +40,18 @@ function SegmentBase<T extends string>({ option, selected, single, tab, look, th
             ? { backgroundColor: c.laminate }
             : { borderColor: c.border, borderWidth: theme.borderWidth.control },
         ]
-      : look === "chips"
+      : joined
+        ? [
+            styles.joinedSegment,
+            { minHeight: size.control[level], backgroundColor: selected ? c.laminate : c.background },
+            level === 2 ? styles.joinedSegmentStacked : null,
+          ]
+        : look === "chips"
         ? [styles.chip, { minHeight: CHIPS_INNER_HEIGHT }, selected ? { backgroundColor: c.laminate } : null]
         : [styles.stage, selected ? { backgroundColor: c.laminate } : null];
 
-  const textName = look === "dayTabs" ? "displayS" : look === "chips" ? "chip" : "code";
+  const textName =
+    look === "dayTabs" || joined ? (option.labelStyle ?? "displayS") : look === "chips" ? "chip" : "code";
 
   return (
     <Pressable
@@ -53,9 +61,14 @@ function SegmentBase<T extends string>({ option, selected, single, tab, look, th
       accessibilityState={single && !tab ? { checked: selected } : { selected }}
       style={({ pressed }) => [frame, pressed && !selected ? { backgroundColor: c.surfaceRaised } : null]}
     >
-      <Text allowFontScaling={false} style={[textStyle(textName, level), { color: foreground }]}>
+      <Text allowFontScaling={false} style={[textStyle(textName, level), styles.center, { color: foreground }]}>
         {option.label}
       </Text>
+      {joined && option.sublabel ? (
+        <Text allowFontScaling={false} style={[textStyle("tag", level), { color: foreground }]}>
+          {option.sublabel}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -95,11 +108,20 @@ export function SegmentedControl<T extends string>({
       accessibilityRole={tab ? "tablist" : single ? "radiogroup" : undefined}
       accessibilityLabel={groupLabel}
       style={[
-        look === "dayTabs" ? styles.dayTabs : styles.row,
+        // dayTabs wrap only at 200 % (2 + 1); below that the three always share one row.
+        look === "dayTabs" ? [styles.dayTabs, level === 2 ? styles.dayTabsWrap : null] : styles.row,
         look === "chips"
           ? [styles.chips, { borderColor: theme.colors.border, borderWidth: theme.borderWidth.control }]
           : null,
         look === "chips" && level > 0 ? styles.chipsWide : null,
+        look === "joined"
+          ? [
+              styles.joined,
+              { borderColor: theme.colors.border, borderWidth: theme.borderWidth.control },
+              // 200 %: segments one under another, long labels never break mid-word.
+              level === 2 ? styles.joinedStacked : null,
+            ]
+          : null,
       ]}
     >
       {options.map((option) => (
@@ -120,7 +142,8 @@ export function SegmentedControl<T extends string>({
 }
 
 const styles = StyleSheet.create({
-  dayTabs: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s2 },
+  dayTabs: { flexDirection: "row", gap: spacing.s2 },
+  dayTabsWrap: { flexWrap: "wrap" },
   dayTab: {
     flexGrow: 1,
     flexBasis: 0,
@@ -130,6 +153,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.s2,
   },
   row: { flexDirection: "row", alignItems: "center" },
+  center: { textAlign: "center" },
+  joined: { alignItems: "stretch", borderRadius: radius.button, overflow: "hidden" },
+  joinedStacked: { flexDirection: "column" },
+  joinedSegment: {
+    flexGrow: 1,
+    flexBasis: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.s2,
+    paddingVertical: spacing.s1,
+  },
+  joinedSegmentStacked: { flexBasis: "auto" },
   chips: { width: CHIPS_WIDTH, borderRadius: radius.button, overflow: "hidden" },
   chipsWide: { width: "100%" },
   chip: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.s1 },
