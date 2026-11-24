@@ -24,6 +24,12 @@ import type { CheckInStoreDeps } from "@/store/checkInStore";
 import type { LineupStoreDeps } from "@/store/lineupStore";
 import type { MessageStoreDeps } from "@/store/messageStore";
 import type { ScheduleStoreDeps } from "@/store/scheduleStore";
+import {
+  type AccessibilitySettings,
+  DEFAULT_SETTINGS,
+  type SettingsStoreDeps,
+  withSetting,
+} from "@/store/settingsStore";
 import type { TransitStoreDeps } from "@/store/transitStore";
 import { AddToScheduleUseCase } from "@/use-cases/AddToScheduleUseCase";
 import { GetNearbyStopsUseCase } from "@/use-cases/GetNearbyStopsUseCase";
@@ -307,4 +313,25 @@ export const mockTransitDeps: TransitStoreDeps = {
     return lists.flat();
   },
   loadAlerts: () => transitRepository.getAlerts(),
+};
+
+/* ------------------------------------------------------------------ */
+/* Settings (S10)                                                       */
+/* ------------------------------------------------------------------ */
+
+const settingsByUser = new Map<string, AccessibilitySettings>();
+
+/**
+ * In-memory user_settings: no row until the first write (load returns null).
+ * A write changes one key only, like an UPDATE of one column.
+ */
+export const mockSettingsDeps: SettingsStoreDeps = {
+  loadSettings: async (userId) => {
+    await delay();
+    return settingsByUser.get(userId) ?? null;
+  },
+  saveSetting: async (userId, key, value) => {
+    await write();
+    settingsByUser.set(userId, withSetting(settingsByUser.get(userId) ?? DEFAULT_SETTINGS, key, value));
+  },
 };
