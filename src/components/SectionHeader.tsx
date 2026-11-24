@@ -9,16 +9,24 @@ export const SECTION_HEADER_HEIGHT = 46;
 const PAD_TOP = spacing.s6;
 const PAD_BOTTOM = 6;
 
-/** „TERAZ · 20:03”, „DALEJ” – a TalkBack heading with a rule after the label. */
-function SectionHeaderBase({ label }: { label: string }) {
+export interface SectionHeaderProps {
+  label: string;
+  /** Rule after the label (L-Listy). E07a / E11 show the label alone. Default true. */
+  rule?: boolean;
+  /** E11 settings: 16 above, 12 below instead of the list header height. */
+  compact?: boolean;
+}
+
+/** „TERAZ · 20:03”, „DALEJ” – a TalkBack heading, by default with a rule after the label. */
+function SectionHeaderBase({ label, rule = true, compact = false }: SectionHeaderProps) {
   const { theme, level } = useTheme();
   const c = theme.colors;
   return (
-    <View style={[styles.row, level === 0 ? { height: SECTION_HEADER_HEIGHT } : null]}>
+    <View style={[styles.row, compact ? styles.compact : level === 0 ? { height: SECTION_HEADER_HEIGHT } : null]}>
       <Text allowFontScaling={false} accessibilityRole="header" style={[textStyle("sectionLabel", level), { color: c.textPrimary }]}>
         {label}
       </Text>
-      <View style={[styles.rule, { backgroundColor: c.divider, height: theme.borderWidth.hairline }]} />
+      {rule ? <View style={[styles.rule, { backgroundColor: c.divider, height: theme.borderWidth.hairline }]} /> : null}
     </View>
   );
 }
@@ -33,5 +41,6 @@ const styles = StyleSheet.create({
     paddingTop: PAD_TOP,
     paddingBottom: PAD_BOTTOM,
   },
+  compact: { paddingTop: spacing.s4, paddingBottom: spacing.s3 },
   rule: { flex: 1, marginBottom: spacing.s2 },
 });

@@ -17,6 +17,7 @@ import { SegmentedControl } from "@/components/SegmentedControl";
 import { type PlanFilters, type PlanNote, type PlanRow, type PlanScope, planRowHeight, rowLayouts } from "@/hooks/planRows";
 import type { LeaveNowAlertData } from "@/hooks/useLeaveNowAlert";
 import { type PlanScreen as PlanScreenData, usePlanScreen } from "@/hooks/usePlanScreen";
+import { settingsStore } from "@/store";
 import { strings } from "@/strings";
 import { useTheme } from "@/theme/ThemeProvider";
 import { spacing, textStyle } from "@/theme/theme";
@@ -37,8 +38,12 @@ const goToMap = (): void => {
 const goToPrepare = (): void => {
   router.push("/prepare");
 };
-// TODO(#29/#34): snooze and mute need the settings store and alert scheduling.
+// TODO(#34): snooze needs alert scheduling.
 const notYet = (): void => undefined;
+// C02 „Wycisz” = S10 „Alerty Wyjdź teraz: wyciszone” (optimistic, the alert turns into the muted line).
+const muteAlerts = (): void => {
+  void settingsStore.getState().update("leaveNowAlerts", "muted");
+};
 
 /* ------------------------------------------------------------------ */
 /* Header above the list (S04 1–10)                                     */
@@ -78,7 +83,7 @@ const PlanHeader = memo(function PlanHeader(props: PlanHeaderProps) {
         }
       />
       {props.alert ? (
-        <LeaveNowAlert {...props.alert} onGuide={goToMap} onSnooze={notYet} onMute={notYet} />
+        <LeaveNowAlert {...props.alert} onGuide={goToMap} onSnooze={notYet} onMute={muteAlerts} />
       ) : null}
       <SegmentedControl
         groupLabel={strings.planScreen.dayGroup}

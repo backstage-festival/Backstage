@@ -5,6 +5,8 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
 import { useConnectionMonitor } from "@/hooks/useConnectionBar";
+import { useSettingsLoader } from "@/hooks/useSettingsLoader";
+import { useSettingsStore } from "@/store";
 import { fontAssets } from "@/theme/fontAssets";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 
@@ -15,6 +17,12 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   // Network state for the ConnectionBar and outbox sync – once per app run.
   useConnectionMonitor();
+  useSettingsLoader();
+  // Separate selectors: each returns a primitive, so no new objects per render.
+  const highContrast = useSettingsStore((state) => state.highContrast);
+  const colorVisionMode = useSettingsStore((state) => state.colorVisionMode);
+  const textSize = useSettingsStore((state) => state.textSize);
+  const reduceMotion = useSettingsStore((state) => state.reduceMotion);
 
   useEffect(() => {
     if (fontError) {
@@ -30,7 +38,12 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
+    <ThemeProvider
+      highContrast={highContrast}
+      colorVisionMode={colorVisionMode}
+      textSize={textSize}
+      reduceMotion={reduceMotion}
+    >
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
         <Stack.Screen name="(tabs)" />

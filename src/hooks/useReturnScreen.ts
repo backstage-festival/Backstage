@@ -85,7 +85,7 @@ export function useReturnScreen(): ReturnScreen {
     [first],
   );
 
-  // TODO(#29): guide to the tapped stop; the map opens without a route for now.
+  // TODO(#35): guide to the tapped stop; the map opens without a route for now.
   const guide = useCallback(() => {
     router.navigate("/map");
   }, []);

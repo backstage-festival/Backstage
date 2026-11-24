@@ -147,6 +147,7 @@ function PerformanceCardBase({
   statusLine,
   onPress,
   onTogglePlan,
+  showPlanToggle = true,
   testID,
 }: PerformanceCardProps) {
   const { theme, level } = useTheme();
@@ -232,7 +233,7 @@ function PerformanceCardBase({
               {statusTag}
             </View>
           </Pressable>
-          {played ? null : (
+          {played || !showPlanToggle ? null : (
             <IconButton
               icon={inPlan ? "inPlan" : "add"}
               selected={inPlan}
@@ -265,7 +266,7 @@ function PerformanceCardBase({
             <StageRow stage={stage} stageName={stageName} played={played} inPlan={inPlan} theme={theme} level={level} />
             {statusTag}
           </Pressable>
-          {played ? null : (
+          {played || !showPlanToggle ? null : (
             <WidePlanToggle
               inPlan={inPlan}
               label={toggleLabel}

@@ -5,6 +5,7 @@ import type { Departure } from "@/domain/entities/Transit";
 import {
   FALLBACK_STAGE_ID,
   formatTime,
+  leaveNowModeOf,
   messageStatusOf,
   toDepartureRowProps,
   toMessageBubbleProps,
@@ -238,5 +239,13 @@ describe("toMessageBubbleProps", () => {
       { currentUserId: me, deliveryState: "sent", senderName: "Ekipa" },
     );
     expect(crew).toEqual({ id: "m", author: "crew", senderName: "Ekipa", time: "21:11", text: sent.body });
+  });
+});
+
+describe("leaveNowModeOf", () => {
+  it("maps the S10 setting to the C02 alert mode", () => {
+    expect(leaveNowModeOf("sound")).toBe("soundAndVibration");
+    expect(leaveNowModeOf("vibrate")).toBe("vibrationOnly");
+    expect(leaveNowModeOf("muted")).toBe("muted");
   });
 });

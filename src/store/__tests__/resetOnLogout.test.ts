@@ -8,6 +8,7 @@ import { createCheckInStore } from "../checkInStore";
 import { createMessageStore } from "../messageStore";
 import { resetOnLogout } from "../resetOnLogout";
 import { createScheduleStore } from "../scheduleStore";
+import { type AccessibilitySettings, createSettingsStore, DEFAULT_SETTINGS } from "../settingsStore";
 
 const NOW = "2027-07-10T18:00:00.000Z";
 
@@ -67,10 +68,18 @@ describe("resetOnLogout", () => {
         .mockResolvedValue([checkedIn]),
     });
 
+    const settingsStore = createSettingsStore({
+      loadSettings: jest
+        .fn<Promise<AccessibilitySettings | null>, [string]>()
+        .mockResolvedValue({ ...DEFAULT_SETTINGS, highContrast: true }),
+      saveSetting: jest.fn(),
+    });
+
     const unsubscribe = resetOnLogout(authStore, [
       scheduleStore,
       messageStore,
       checkInStore,
+      settingsStore,
     ]);
 
     login.mockResolvedValueOnce(user("u-1"));
@@ -78,8 +87,10 @@ describe("resetOnLogout", () => {
     await scheduleStore.getState().load("u-1", "event-1");
     await messageStore.getState().load("crew-1");
     await checkInStore.getState().load("u-1");
+    await settingsStore.getState().load("u-1");
 
     return {
+      settingsStore,
       login,
       authStore,
       scheduleStore,
@@ -89,9 +100,10 @@ describe("resetOnLogout", () => {
     };
   };
 
-  it("logout clears the plan, the messages and the check-ins", async () => {
-    const { authStore, scheduleStore, messageStore, checkInStore } =
+  it("logout clears the plan, the messages, the check-ins and the settings", async () => {
+    const { authStore, scheduleStore, messageStore, checkInStore, settingsStore } =
       await setup();
+    expect(settingsStore.getState().highContrast).toBe(true);
     expect(scheduleStore.getState().items).toHaveLength(1);
     expect(messageStore.getState().messages).toHaveLength(1);
     expect(checkInStore.getState().checkedInConcertIds.size).toBe(1);
@@ -109,6 +121,7 @@ describe("resetOnLogout", () => {
       loadStatus: "idle",
     });
     expect(checkInStore.getState().checkedInConcertIds.size).toBe(0);
+    expect(settingsStore.getState()).toMatchObject({ userId: null, highContrast: false });
   });
 
   it("does not reset on a failed login or other auth changes", async () => {

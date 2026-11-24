@@ -12,27 +12,31 @@ import {
 export interface ThemeContextValue {
   readonly theme: Theme;
   readonly level: TextLevel;
+  /** App setting „Ograniczony ruch”; null = follow the system (useReduceMotion). */
+  readonly reduceMotion: boolean | null;
 }
 
 export interface ThemeProviderProps {
-  /** Overrides – default: off. Later these come from the settings store. */
+  /** Default: off. The root layout passes them from the settings store (S10). */
   readonly highContrast?: boolean;
   readonly colorVisionMode?: boolean;
   readonly textSize?: TextSizeSetting;
+  /** null (default) = follow the system setting. */
+  readonly reduceMotion?: boolean | null;
   readonly children: ReactNode;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 /**
- * Local state for now (no store yet): default theme, text level from
- * effectiveTextSize(setting, system font scale). Nested providers can
- * override settings, e.g. placeholders showing the 200 % variant.
+ * Theme from the settings, text level from effectiveTextSize(setting, system
+ * font scale). Nested providers can override settings, e.g. the live preview.
  */
 export function ThemeProvider({
   highContrast = false,
   colorVisionMode = false,
   textSize = "standard",
+  reduceMotion = null,
   children,
 }: ThemeProviderProps) {
   // Same value as PixelRatio.getFontScale(), but re-renders when the user changes it.
@@ -42,8 +46,9 @@ export function ThemeProvider({
     () => ({
       theme: resolveTheme({ highContrast, colorVisionMode }),
       level: effectiveTextSize(textSize, fontScale),
+      reduceMotion,
     }),
-    [highContrast, colorVisionMode, textSize, fontScale],
+    [highContrast, colorVisionMode, textSize, fontScale, reduceMotion],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

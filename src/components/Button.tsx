@@ -1,7 +1,9 @@
+import type { Ref } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "@/theme/ThemeProvider";
 import { radius, size, spacing, textStyle, type ColorTokens, type Theme } from "@/theme/theme";
+import type { IconName } from "@/types/components";
 import type { ButtonProps, ButtonSurface, ButtonVariant } from "@/types/components";
 
 import { Icon } from "./Icon";
@@ -86,6 +88,14 @@ export function buttonColors(
             border: ink,
             borderWidth: INK_BORDER_WIDTH,
           };
+    case "link":
+      return {
+        background: transparent,
+        backgroundPressed: transparent,
+        foreground: onDark ? c.textSecondary : c.textOnLaminateSecondary,
+        border: null,
+        borderWidth: 0,
+      };
     case "ghost":
       return {
         background: transparent,
@@ -98,10 +108,30 @@ export function buttonColors(
 }
 
 /**
+ * C09: the icon sits before the label (pin, map, ×, ←), except the „go” arrow →
+ * and the sync spinner that replaces it while sending – so the label never jumps.
+ */
+export function iconLeads(icon: IconName): boolean {
+  return icon !== "arrowRight" && icon !== "sync";
+}
+
+/** Link: mono label, the 48 dp touch height comes from hitSlop, not from layout. */
+function linkHitSlop(lineHeight: number) {
+  const y = Math.max(0, (size.touchMin - lineHeight) / 2);
+  return { top: y, bottom: y, left: 0, right: 0 };
+}
+
+/**
  * C09 · Button. One primary per screen. Destructive = × icon + word.
  * When disabled, the reason is shown under the button (bodyS) and read as hint.
  */
+/** C09 props plus a ref to the pressable (dialogs move TalkBack focus to it). */
+export interface ButtonElementProps extends ButtonProps {
+  ref?: Ref<View>;
+}
+
 export function Button({
+  ref,
   label,
   variant,
   surface,
@@ -110,32 +140,39 @@ export function Button({
   disabledReason,
   width,
   accessibilityHint,
+  underline = false,
   onPress,
-}: ButtonProps) {
+}: ButtonElementProps) {
   const { theme, level } = useTheme();
   const { scale, onPressIn, onPressOut } = usePressScale();
   const colors = buttonColors(theme, variant, surface, disabled);
   const iconName = icon ?? (variant === "destructive" ? "close" : undefined);
   const fill = width === "fill";
+  const leading = iconName !== undefined && iconLeads(iconName);
+  const link = variant === "link";
+  const labelStyle = textStyle(link ? "label" : "button", level);
+  const iconSize = link ? size.iconSmall : LABEL_ICON_SIZE;
 
   return (
     <View style={fill ? styles.fill : styles.hug}>
       <Pressable
+        ref={ref}
         onPress={onPress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={label}
-        accessibilityHint={disabled ? disabledReason : accessibilityHint}
+        accessibilityHint={disabled ? (disabledReason ?? accessibilityHint) : accessibilityHint}
         accessibilityState={{ disabled }}
+        {...(link ? { hitSlop: linkHitSlop(Number(labelStyle.lineHeight)) } : null)}
       >
         {({ pressed }) => (
           <Animated.View
             style={[
-              styles.body,
+              link ? styles.linkBody : styles.body,
               {
-                minHeight: size.button[level],
+                minHeight: link ? undefined : size.button[level],
                 backgroundColor: pressed ? colors.backgroundPressed : colors.background,
                 borderColor: colors.border ?? "transparent",
                 borderWidth: colors.borderWidth,
@@ -143,17 +180,25 @@ export function Button({
               },
             ]}
           >
-            {variant === "destructive" && iconName ? (
-              <Icon name={iconName} size={LABEL_ICON_SIZE} color={colors.foreground} />
+            {leading && iconName ? (
+              <Icon name={iconName} size={iconSize} color={pressed && link ? theme.colors.textPrimary : colors.foreground} />
             ) : null}
             <Text
               allowFontScaling={false}
-              style={[textStyle("button", level), styles.label, { color: colors.foreground }]}
+              // No hyphenation: S10 preview broke „Prowadź” into „Prowad-ź”.
+              android_hyphenationFrequency="none"
+              textBreakStrategy="simple"
+              style={[
+                labelStyle,
+                link ? styles.linkLabel : styles.label,
+                { color: pressed && link ? theme.colors.textPrimary : colors.foreground },
+                underline && link ? styles.underline : null,
+              ]}
             >
               {label}
             </Text>
-            {variant !== "destructive" && iconName ? (
-              <Icon name={iconName} size={LABEL_ICON_SIZE} color={colors.foreground} />
+            {!leading && iconName ? (
+              <Icon name={iconName} size={iconSize} color={colors.foreground} />
             ) : null}
           </Animated.View>
         )}
@@ -183,5 +228,8 @@ const styles = StyleSheet.create({
     gap: spacing.s2,
   },
   label: { textAlign: "center", flexShrink: 1 },
+  linkBody: { flexDirection: "row", alignItems: "center", gap: spacing.s2 },
+  linkLabel: { flexShrink: 1 },
+  underline: { textDecorationLine: "underline" },
   reason: { marginTop: spacing.s1 },
 });
