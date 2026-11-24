@@ -16,6 +16,12 @@ describe("buildInjectedCommand", () => {
     expect(script).toContain('"type":"centerOn"');
     expect(script).toContain('"zoom":17');
   });
+
+  it("serializes a setTheme command", () => {
+    const script = buildInjectedCommand({ type: "setTheme", theme: "wysoki-kontrast" });
+    expect(script).toContain('"type":"setTheme"');
+    expect(script).toContain('"theme":"wysoki-kontrast"');
+  });
 });
 
 describe("parseMapEvent", () => {

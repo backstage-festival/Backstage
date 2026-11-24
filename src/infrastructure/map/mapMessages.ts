@@ -23,6 +23,11 @@ export interface MapMarker extends Coordinates {
   readonly selected?: boolean;
 }
 
+/** Accessibility themes for the marker set (H04 / issue #44). */
+export const MAP_THEMES = ["domyslny", "wzory-cvd", "wysoki-kontrast"] as const;
+
+export type MapTheme = (typeof MAP_THEMES)[number];
+
 /* ------------------------------------------------------------------ */
 /* RN -> map (sent via injectJavaScript)                                */
 /* ------------------------------------------------------------------ */
@@ -39,7 +44,8 @@ export type MapCommand =
       readonly latitude: number;
       readonly longitude: number;
       readonly zoom?: number;
-    };
+    }
+  | { readonly type: "setTheme"; readonly theme: MapTheme };
 
 /** Wraps a command as a string safe to pass to WebView#injectJavaScript. */
 export function buildInjectedCommand(command: MapCommand): string {
