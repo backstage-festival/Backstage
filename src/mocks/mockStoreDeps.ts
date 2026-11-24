@@ -23,6 +23,9 @@ import type { AuthStoreDeps } from "@/store/authStore";
 import type { CheckInStoreDeps } from "@/store/checkInStore";
 import type { LineupStoreDeps } from "@/store/lineupStore";
 import type { MessageStoreDeps } from "@/store/messageStore";
+import type { SavedPlace } from "@/domain/entities/SavedPlace";
+import type { ISavedPlaceRepository } from "@/domain/repositories/ISavedPlaceRepository";
+import type { PlacesStoreDeps } from "@/store/placesStore";
 import type { ScheduleStoreDeps } from "@/store/scheduleStore";
 import {
   type AccessibilitySettings,
@@ -36,9 +39,11 @@ import { GetNearbyStopsUseCase } from "@/use-cases/GetNearbyStopsUseCase";
 import type { CheckInResult } from "@/use-cases/CheckInUseCase";
 import { QueueMessageUseCase } from "@/use-cases/QueueMessageUseCase";
 import { RetryMessageUseCase } from "@/use-cases/RetryMessageUseCase";
+import { SavePlaceUseCase } from "@/use-cases/SavePlaceUseCase";
 import { SyncOutboxUseCase } from "@/use-cases/SyncOutboxUseCase";
 
 import { demoConcerts, demoEvent, demoMessages } from "./demoData";
+import { mockSavedPlaces } from "./demoPlaces";
 import { demoAlerts, demoDepartures, mockGatePosition } from "./demoTransit";
 import { mockCurrentUserId, mockPlannedConcertIds, mockStages, mockStops, mockUsers } from "./mockData";
 
@@ -297,13 +302,33 @@ const transitRepository: ITransitRepository = {
   saveAlerts: async () => undefined,
 };
 
-/** GPS fixed at the festival gate. */
-const locationService: ILocationService = {
-  requestPermissions: async () => true,
-  getCurrentPosition: async () => mockGatePosition,
-  watchPosition: async () => () => undefined,
-  watchHeading: async () => () => undefined,
+let locationAllowed = true;
+
+/** Flip the mock permission from a dev menu to demo the „Otwórz ustawienia” state. */
+export function setMockLocationAllowed(value: boolean): void {
+  locationAllowed = value;
+}
+
+/** Phone heading in the mock: north. */
+const MOCK_HEADING_DEG = 0;
+
+/**
+ * GPS fixed at the festival gate. The watchers emit once, right after
+ * subscribing, like a device that does not move.
+ */
+export const mockLocationService: ILocationService = {
+  requestPermissions: async () => locationAllowed,
+  getCurrentPosition: async () => (locationAllowed ? mockGatePosition : null),
+  watchPosition: async (onChange) => {
+    const timer = setTimeout(() => onChange(mockGatePosition), 0);
+    return () => clearTimeout(timer);
+  },
+  watchHeading: async (onChange) => {
+    const timer = setTimeout(() => onChange(MOCK_HEADING_DEG), MOCK_DELAY_MS);
+    return () => clearTimeout(timer);
+  },
 };
+const locationService = mockLocationService;
 
 export const mockTransitDeps: TransitStoreDeps = {
   getNearbyStops: new GetNearbyStopsUseCase(transitRepository, locationService),
@@ -334,4 +359,36 @@ export const mockSettingsDeps: SettingsStoreDeps = {
     await write();
     settingsByUser.set(userId, withSetting(settingsByUser.get(userId) ?? DEFAULT_SETTINGS, key, value));
   },
+};
+
+/* ------------------------------------------------------------------ */
+/* Saved places (S07)                                                   */
+/* ------------------------------------------------------------------ */
+
+let savedPlaces: SavedPlace[] = [...mockSavedPlaces];
+
+const savedPlaceRepository: ISavedPlaceRepository = {
+  getForUser: async (userId) => {
+    await delay();
+    return savedPlaces
+      .filter((place) => place.userId === userId)
+      .sort((a, b) => Date.parse(b.savedAt) - Date.parse(a.savedAt));
+  },
+  // Upsert by id, like INSERT OR REPLACE.
+  save: async (place) => {
+    await write();
+    savedPlaces = [...savedPlaces.filter((p) => p.id !== place.id), place];
+  },
+  remove: async (id) => {
+    await write();
+    savedPlaces = savedPlaces.filter((p) => p.id !== id);
+  },
+};
+
+export const mockPlacesDeps: PlacesStoreDeps = {
+  savePlace: new SavePlaceUseCase(savedPlaceRepository, mockLocationService, idGenerator),
+  location: mockLocationService,
+  loadPlaces: (userId) => savedPlaceRepository.getForUser(userId),
+  removePlace: (placeId) => savedPlaceRepository.remove(placeId),
+  renamePlace: (place) => savedPlaceRepository.save(place),
 };

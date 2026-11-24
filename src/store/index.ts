@@ -6,6 +6,7 @@ import {
   mockLineupDeps,
   mockMessageDeps,
   mockNetworkService,
+  mockPlacesDeps,
   mockScheduleDeps,
   mockSettingsDeps,
   mockTransitDeps,
@@ -16,6 +17,7 @@ import { type CheckInState, createCheckInStore } from "./checkInStore";
 import { type ConnectionState, createConnectionStore } from "./connectionStore";
 import { createLineupStore, type LineupState } from "./lineupStore";
 import { createMessageStore, type MessageState } from "./messageStore";
+import { createPlacesStore, type PlacesState } from "./placesStore";
 import { resetOnLogout } from "./resetOnLogout";
 import { createScheduleStore, type ScheduleState } from "./scheduleStore";
 import { createSettingsStore, type SettingsState } from "./settingsStore";
@@ -27,6 +29,7 @@ export const messageStore = createMessageStore(mockMessageDeps);
 export const checkInStore = createCheckInStore(mockCheckInDeps);
 export const authStore = createAuthStore(mockAuthDeps);
 export const settingsStore = createSettingsStore(mockSettingsDeps);
+export const placesStore = createPlacesStore(mockPlacesDeps);
 export const connectionStore = createConnectionStore({
   network: mockNetworkService,
   onOnline: () => {
@@ -40,7 +43,7 @@ export const lineupStore = createLineupStore(mockLineupDeps);
 export const transitStore = createTransitStore(mockTransitDeps);
 
 // App-lifetime subscription: logout clears the user-scoped stores.
-resetOnLogout(authStore, [scheduleStore, messageStore, checkInStore, settingsStore]);
+resetOnLogout(authStore, [scheduleStore, messageStore, checkInStore, settingsStore, placesStore]);
 
 export function useScheduleStore<T>(selector: (state: ScheduleState) => T): T {
   return useStore(scheduleStore, selector);
@@ -68,6 +71,10 @@ export function useLineupStore<T>(selector: (state: LineupState) => T): T {
   return useStore(lineupStore, selector);
 }
 
+export function usePlacesStore<T>(selector: (state: PlacesState) => T): T {
+  return useStore(placesStore, selector);
+}
+
 export function useSettingsStore<T>(selector: (state: SettingsState) => T): T {
   return useStore(settingsStore, selector);
 }
@@ -89,6 +96,14 @@ export {
   selectQueuedCount,
 } from "./messageStore";
 export type { MessageError } from "./messageStore";
+export {
+  LOCAL_PLACE_ID_PREFIX,
+  selectIsPlacePending,
+  selectIsSavingPosition,
+  selectPlace,
+  selectTentPlace,
+} from "./placesStore";
+export type { PlacesError } from "./placesStore";
 export { selectIsPlanned, selectIsSchedulePending } from "./scheduleStore";
 export type { ScheduleError } from "./scheduleStore";
 export { DEFAULT_SETTINGS, selectIsSettingPending } from "./settingsStore";
