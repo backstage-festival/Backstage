@@ -1,6 +1,16 @@
 import { Link, router } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
-import { FlatList, type LayoutChangeEvent, type ListRenderItem, StyleSheet, Text, View } from "react-native";
+import {
+  FlatList,
+  type LayoutChangeEvent,
+  type ListRenderItem,
+  Pressable,
+  type StyleProp,
+  StyleSheet,
+  Text,
+  type TextStyle,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
@@ -17,10 +27,11 @@ import { SegmentedControl } from "@/components/SegmentedControl";
 import { type PlanFilters, type PlanNote, type PlanRow, type PlanScope, planRowHeight, rowLayouts } from "@/hooks/planRows";
 import type { LeaveNowAlertData } from "@/hooks/useLeaveNowAlert";
 import { type PlanScreen as PlanScreenData, usePlanScreen } from "@/hooks/usePlanScreen";
+import { failNextWrite, getMockPosition, setMockPosition } from "@/mocks/mockStoreDeps";
 import { settingsStore } from "@/store";
 import { strings } from "@/strings";
 import { useTheme } from "@/theme/ThemeProvider";
-import { spacing, textStyle } from "@/theme/theme";
+import { hitSlopFor, size, spacing, textStyle } from "@/theme/theme";
 import type { SegmentedOption, StageId } from "@/types/components";
 
 const INITIAL_FILTERS: PlanFilters = { day: null, scope: "all", stages: [] };
@@ -208,7 +219,60 @@ function TempLinks() {
           {strings.planScreen.login}
         </Text>
       </Link>
+      {__DEV__ ? <DevPositionSwitch style={linkText} /> : null}
+      {__DEV__ ? <DevFailNextWrite style={linkText} /> : null}
     </View>
+  );
+}
+
+/**
+ * TEMP (#32): stage the dev switch puts the mock phone next to (S05 check-in demo).
+ * S2, not S1: in mockData the gate is ~19 m from S1, so S1 is in check-in range at the gate anyway.
+ */
+const DEV_STAGE_ID = "s2";
+const DEV_STAGE_NUMBER = 2;
+
+/** TEMP (#32), dev builds only: moves the mock GPS between the gate and S2. */
+function DevPositionSwitch({ style }: { style: StyleProp<TextStyle> }) {
+  const { level } = useTheme();
+  const [atStage, setAtStage] = useState(() => getMockPosition() !== "gate");
+  const toggle = useCallback(() => {
+    const toStage = getMockPosition() === "gate";
+    setMockPosition(toStage ? { stageId: DEV_STAGE_ID } : "gate");
+    setAtStage(toStage);
+  }, []);
+  const where = atStage ? strings.planScreen.devPositionStage(DEV_STAGE_NUMBER) : strings.planScreen.devPositionGate;
+  return (
+    <Pressable
+      onPress={toggle}
+      accessibilityRole="button"
+      accessibilityHint={strings.planScreen.devPositionHint}
+      hitSlop={hitSlopFor(size.touchMin, Number(textStyle("label", level).lineHeight))}
+    >
+      <Text allowFontScaling={false} style={style}>
+        {strings.planScreen.devPosition(where)}
+      </Text>
+    </Pressable>
+  );
+}
+
+/**
+ * TEMP (#32), dev builds only: the next mocked write (check-in, „Dodaj do
+ * planu”, …) fails once – shows the optimistic rollback on a phone.
+ */
+function DevFailNextWrite({ style }: { style: StyleProp<TextStyle> }) {
+  const { level } = useTheme();
+  return (
+    <Pressable
+      onPress={failNextWrite}
+      accessibilityRole="button"
+      accessibilityHint={strings.planScreen.devFailNextWriteHint}
+      hitSlop={hitSlopFor(size.touchMin, Number(textStyle("label", level).lineHeight))}
+    >
+      <Text allowFontScaling={false} style={style}>
+        {strings.planScreen.devFailNextWrite}
+      </Text>
+    </Pressable>
   );
 }
 
