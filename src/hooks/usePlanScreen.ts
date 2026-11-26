@@ -5,7 +5,6 @@ import { useShallow } from "zustand/shallow";
 import { FALLBACK_STAGE_ID, formatTime } from "@/components/mappers";
 import { stageNumber } from "@/components/PerformanceCard";
 import type { Stage } from "@/domain/entities/Event";
-import { mockPassSerial } from "@/mocks/mockData";
 import { scheduleStore, type ScheduleError, useLineupStore, useScheduleStore } from "@/store";
 import { strings } from "@/strings";
 import type { SegmentedOption, StageId } from "@/types/components";
@@ -133,7 +132,6 @@ export function usePlanScreen(filters: PlanFilters, playedExpanded: boolean): Pl
         now,
         playedExpanded,
         note,
-        serial: mockPassSerial, // TEMP: the pass serial is not in the domain yet
         accentSuppressed,
       }),
     [concerts, stages, plannedIds, days, filters, now, playedExpanded, note, accentSuppressed],

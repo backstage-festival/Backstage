@@ -9,6 +9,7 @@ import {
   festivalDayOf,
   festivalDays,
   firstConflict,
+  passSerial,
   type PlanInput,
   planRowHeight,
   rowLayouts,
@@ -55,7 +56,6 @@ const input = (overrides: Partial<PlanInput> = {}): PlanInput => ({
   now,
   playedExpanded: false,
   note: null,
-  serial: "0702-S2-03",
   accentSuppressed: false,
   ...overrides,
 });
@@ -196,5 +196,37 @@ describe("row layouts", () => {
 
     const plain = rowLayouts(buildPlanView(input({ plannedIds: new Set() })).rows, planRowHeight);
     expect(plain.map((layout) => layout.length)).toEqual([46, 86, 86, 86, 49]);
+  });
+});
+
+describe("passSerial", () => {
+  it("numbers concerts by their order on the stage that festival day", () => {
+    // Main stage on Friday: Biała Gorączka 17:15, Wilga i Fale 20:15, Mewy Nocą 22:15.
+    expect(passSerial(played, 1, concerts)).toBe("0702-S1-01");
+    expect(passSerial(wilga, 1, concerts)).toBe("0702-S1-02");
+    expect(passSerial(mewy, 1, [mewy, wilga, played])).toBe("0702-S1-03");
+  });
+
+  it("counts each stage on its own", () => {
+    expect(passSerial(trio, 2, concerts)).toBe("0702-S2-01");
+    expect(passSerial(hanna, 2, concerts)).toBe("0702-S2-02");
+  });
+
+  it("starts again on another festival day, and 00:30 still belongs to the evening before", () => {
+    expect(passSerial(saturday, 1, concerts)).toBe("0703-S1-01");
+    const late = concert("Późny", "main", "2027-07-03T00:30:00+02:00", "2027-07-03T01:30:00+02:00");
+    expect(passSerial(late, 1, [...concerts, late])).toBe("0702-S1-04");
+  });
+
+  it("always prints the order with two digits", () => {
+    const many = Array.from({ length: 12 }, (_, i) =>
+      concert(`c${i}`, "main", `2027-07-02T${String(10 + i).padStart(2, "0")}:00:00+02:00`, `2027-07-02T${String(10 + i).padStart(2, "0")}:30:00+02:00`),
+    );
+    expect(passSerial(many[0] ?? played, 1, many)).toBe("0702-S1-01");
+    expect(passSerial(many[11] ?? played, 1, many)).toBe("0702-S1-12");
+  });
+
+  it("gives the Plan's NowPass the serial of the concert that is on", () => {
+    expect(buildPlanView(input()).nowPass?.serial).toBe(passSerial(trio, 2, concerts));
   });
 });

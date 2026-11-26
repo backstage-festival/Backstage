@@ -99,9 +99,6 @@ export const mockConcerts: Concert[] = [
 /** Concert ids in „my plan” (mock of useScheduleStore). */
 export const mockPlannedConcertIds: readonly string[] = ["c-wilga-i-fale", "c-hanna-sieradz", "c-mewy-noca"];
 
-/** Serial printed on the NowPass. */
-export const mockPassSerial = "0702-S2-03";
-
 export const mockStops: Stop[] = [
   { id: 14701, name: "Plac Solidarności", location: { latitude: 54.3597, longitude: 18.6487 } },
   { id: 14702, name: "Stocznia SKM", location: { latitude: 54.3655, longitude: 18.6453 } },
