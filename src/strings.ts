@@ -219,6 +219,14 @@ export const strings = {
     badges: "Odznaki",
     accessibility: "Dostępność",
     login: "Logowanie",
+    /** TEMP (#32): dev switch of the mock GPS – „DEV: pozycja – brama / S2”. */
+    devPosition: (where: string) => `DEV: pozycja – ${where}`,
+    devPositionGate: "brama",
+    devPositionStage: (stageNumber: number) => `S${stageNumber}`,
+    devPositionHint: "Przełącza pozycję testowego GPS między bramą a sceną",
+    /** TEMP (#32): dev link – the next mocked write fails once (rollback demo). */
+    devFailNextWrite: "DEV: następny zapis – błąd",
+    devFailNextWriteHint: "Następny zapis, na przykład check-in albo dodanie do planu, nie uda się i zostanie cofnięty",
     empty: {
       noPlanEyebrow: (day: string) => `Mój plan · ${day}`,
       noPlanTitle: "Twój plan jest pusty",
@@ -524,6 +532,102 @@ export const strings = {
       compassTarget: (label: string, distance: string) => `${label}: ${distance}`,
       back: "Wróć do listy miejsc",
       mapHint: "Otwiera mapę festiwalu",
+    },
+  },
+
+  /** S05 · Karta koncertu (modal) + DistanceGauge + CheckInRange */
+  concert: {
+    close: "Zamknij",
+    /** Pass band: „S1 · Scena Główna · teraz” / „… · za 2 h 12 min” / „… · zagrane”. */
+    band: (stageNumber: number, stageName: string, when: string) => `S${stageNumber} · Scena ${stageName} · ${when}`,
+    now: "teraz",
+    played: "zagrane",
+    startsIn: (hours: number, minutes: number) => (hours > 0 ? `za ${hours} h ${minutes} min` : `za ${minutes} min`),
+    /** „Pt 2.07 · 20:15–21:30” */
+    when: (day: string, range: string) => `${day} · ${range}`,
+    /** Length before the concert: „90 min”. */
+    duration: (minutes: number) => `${minutes} min`,
+    /** „Kolizja · Hanna Sieradz, S2 do 22:30” */
+    conflict: (artist: string, stageNumber: number, end: string) => `Kolizja · ${artist}, S${stageNumber} do ${end}`,
+    inRange: "W zasięgu check-inu",
+    walk: (minutes: number) => `${minutes} min pieszo`,
+    guide: "Prowadź",
+    locating: "Szukam pozycji…",
+    noPermission: "Brak dostępu do lokalizacji",
+    retry: "Spróbuj ponownie",
+    openSettings: "Otwórz ustawienia",
+    addToPlan: "Dodaj do planu",
+    inPlan: "W planie",
+    checkIn: "Check-in",
+    checkedIn: "Zameldowano",
+    /** CheckInRange title: „Podejdź bliżej · check-in od 50 m”. */
+    tooFar: (radius: number) => `Podejdź bliżej · check-in od ${radius} m`,
+    rangeStage: (radius: number) => `Scena · ${radius} m`,
+    rangeYou: (distance: string) => `Ty · ${distance}`,
+    reason: {
+      noLocation: "Check-in potrzebuje Twojej pozycji GPS.",
+      notYet: (minutes: number) => `Check-in otworzy się ${minutes} min przed koncertem.`,
+      ended: "Koncert się skończył – check-in jest zamknięty.",
+    },
+    /** Rollback of a check-in (StatusTag error, short – one line at 100 %). */
+    error: {
+      tooFar: (distance: string) => `Za daleko od sceny · ${distance}`,
+      closed: "Check-in zamknięty",
+      locationUnavailable: "Brak pozycji GPS",
+      saveFailed: "Nie zapisano check-inu",
+    },
+    explainLead: "Check-in",
+    explainFull: " to potwierdzenie, że jesteś pod sceną. Działa do 50 m od niej, zapisuje się bez sieci i liczy się do odznak.",
+    explainShort: " to potwierdzenie, że jesteś pod sceną. Liczy się do odznak.",
+    notFound: {
+      title: "Koncert",
+      eyebrow: "Nie znaleziono",
+      heading: "Tego koncertu nie ma",
+      body: "Mógł zostać odwołany. Odśwież dane przy zasięgu.",
+      back: "Wróć do planu",
+    },
+    a11y: {
+      /** „Wilga i Fale. Scena 1 Główna, teraz, 20:15 do 21:30, zostało 68 minut.” */
+      passNow: (artist: string, stageNumber: number, stageName: string, start: string, end: string, minutes: number) =>
+        `${artist}. Scena ${stageNumber} ${stageName}, teraz, ${start} do ${end}, zostało ${minutes} ${minutesWord(minutes)}.`,
+      /** „Northern Atlas. Scena 1 Główna, za 2 godziny 12 minut, 22:15 do 23:45, 90 minut.” */
+      passUpcoming: (
+        artist: string,
+        stageNumber: number,
+        stageName: string,
+        start: string,
+        end: string,
+        hours: number,
+        minutes: number,
+        length: number,
+      ) =>
+        `${artist}. Scena ${stageNumber} ${stageName}, za ` +
+        (hours > 0 ? `${hours} ${plural(hours, "godzinę", "godziny", "godzin")} ` : "") +
+        `${minutes} ${minutesWord(minutes)}, ${start} do ${end}, ${length} ${minutesWord(length)}.`,
+      passPlayed: (artist: string, stageNumber: number, stageName: string, start: string, end: string) =>
+        `${artist}. Scena ${stageNumber} ${stageName}, zagrane, ${start} do ${end}.`,
+      conflict: (artist: string, stageNumber: number, stageName: string, end: string) =>
+        `Kolizja z ${artist}, scena ${stageNumber} ${stageName}, do ${end}.`,
+      /** „Odległość od sceny: 30 metrów. W zasięgu check-inu.” */
+      gaugeInRange: (distance: string) => `Odległość od sceny: ${distance}. W zasięgu check-inu.`,
+      /** „Odległość od sceny: 450 metrów. Podejdź bliżej, check-in od 50 metrów.” */
+      gaugeTooFar: (distance: string, radius: number) =>
+        `Odległość od sceny: ${distance}. Podejdź bliżej, check-in od ${radius} metrów.`,
+      gaugeLocating: "Odległość od sceny: szukam pozycji.",
+      gaugeNoPermission: "Odległość od sceny nieznana. Aplikacja nie ma dostępu do lokalizacji.",
+      guideHint: "Otwiera mapę festiwalu",
+      retryHint: "Szuka Twojej pozycji jeszcze raz",
+      settingsHint: "Otwiera ustawienia telefonu",
+      checkInHint: "Zapisuje, że jesteś pod sceną. Działa bez zasięgu.",
+      /** Hint of the disabled button when too far – the range bar is hidden from TalkBack. */
+      tooFarHint: (distance: string, radius: number) =>
+        `Podejdź bliżej, check-in od ${radius} metrów. Jesteś ${distance} od sceny.`,
+      checkedIn: "Zameldowano pod sceną.",
+      tooFarError: (distance: string) => `Check-in nie zapisany: jesteś za daleko od sceny, ${distance}.`,
+      closedError: "Check-in nie zapisany: okno check-inu jest zamknięte.",
+      locationError: "Check-in nie zapisany: brak pozycji GPS.",
+      saveFailedError: "Nie zapisano check-inu. Spróbuj jeszcze raz.",
+      notFoundBack: "Zamyka kartę i wraca do planu",
     },
   },
 

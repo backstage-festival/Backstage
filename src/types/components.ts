@@ -184,6 +184,8 @@ export interface ButtonProps {
   accessibilityHint?: string;
   /** link only: underlined label (S01). */
   underline?: boolean;
+  /** Toggle that is on (S05 „W planie”): read as „wybrany”; secondary on dark gets the laminate fill. */
+  selected?: boolean;
   onPress: () => void;
 }
 
@@ -379,6 +381,51 @@ export interface CompassArrowProps {
   description?: string;
   /** Throttled label (C06: every 10 s or on a > 30° turn), polite live region. */
   accessibilityLabel: string;
+  testID?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* S05 · ConcertPass, DistanceGauge, CheckInRange                       */
+/* ------------------------------------------------------------------ */
+
+/** Big pass of the concert card (NowPass look on PassFrame, one TalkBack stop). */
+export interface ConcertPassProps {
+  band: string; // „S1 · Scena Główna · teraz”
+  artist: string;
+  when: string; // „Pt 2.07 · 20:15–21:30”
+  /** 0–1 while the concert is on; null otherwise (no bar). */
+  progress: number | null;
+  remaining: string | null; // „Zostało 68 min”
+  duration: string | null; // „90 min” before the concert
+  serial: string; // „Nº 0702-S2-03”
+  accessibilityLabel: string;
+  testID?: string;
+}
+
+export type DistanceGaugeState = "inRange" | "tooFar" | "locating" | "noPermission";
+
+export interface DistanceGaugeProps {
+  state: DistanceGaugeState;
+  /** Arrow angle relative to the top of the phone (or north without a compass); null = no arrow. */
+  bearingDeg: number | null;
+  distance: string; // „30 m”, „–” without GPS
+  walk: string | null; // „6 min pieszo”
+  /** Throttled label, polite live region. */
+  accessibilityLabel: string;
+  onGuide: () => void;
+  onRetry: () => void;
+  onOpenSettings: () => void;
+  testID?: string;
+}
+
+export interface CheckInRangeProps {
+  title: string; // „Podejdź bliżej · check-in od 50 m”
+  /** Width of the check-in zone on the bar, 0–1. */
+  zone: number;
+  /** Position of the „Ty” marker, 0–1 (clamped to the end). */
+  progress: number;
+  stageLabel: string; // „Scena · 50 m”
+  youLabel: string; // „Ty · 450 m”
   testID?: string;
 }
 
