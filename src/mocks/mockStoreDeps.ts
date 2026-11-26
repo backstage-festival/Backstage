@@ -9,8 +9,10 @@
 import type { CheckIn, ScheduleItem } from "@/domain/entities/Schedule";
 import type { OutboxMessage } from "@/domain/entities/OutboxMessage";
 import type { User } from "@/domain/entities/User";
-import type { Unsubscribe } from "@/domain/entities/common";
+import type { Coordinates, Unsubscribe } from "@/domain/entities/common";
 import { DomainError } from "@/domain/errors/DomainError";
+import { TooFarFromStageError } from "@/domain/errors/TooFarFromStageError";
+import { checkGeofence } from "@/domain/utils/geofence";
 import type { IEventRepository } from "@/domain/repositories/IEventRepository";
 import type { ILocationService } from "@/domain/repositories/ILocationService";
 import type { IIdGenerator } from "@/domain/repositories/IIdGenerator";
@@ -196,6 +198,86 @@ const messageGateway: IMessageGateway = {
 };
 
 /* ------------------------------------------------------------------ */
+/* Location                                                             */
+/* ------------------------------------------------------------------ */
+
+let locationAllowed = true;
+
+/** Flip the mock permission from a dev menu to demo the „Otwórz ustawienia” state. */
+export function setMockLocationAllowed(value: boolean): void {
+  locationAllowed = value;
+}
+
+/** Phone heading in the mock: north. */
+const MOCK_HEADING_DEG = 0;
+
+/** TEMP until #32: where the mock phone stands – the festival gate or next to a stage. */
+export type MockPositionTarget = "gate" | { readonly stageId: string };
+
+/** „Next to a stage” = this many metres north of it (inside the 50 m check-in radius). */
+export const MOCK_NEAR_STAGE_M = 30;
+const METERS_PER_DEGREE_LATITUDE = 111_320;
+
+let positionTarget: MockPositionTarget = "gate";
+const positionListeners = new Set<(position: Coordinates) => void>();
+
+function positionOf(target: MockPositionTarget): Coordinates {
+  if (target === "gate") return mockGatePosition;
+  const stage = mockStages.find((s) => s.id === target.stageId);
+  if (stage === undefined) return mockGatePosition;
+  return {
+    latitude: stage.location.latitude + MOCK_NEAR_STAGE_M / METERS_PER_DEGREE_LATITUDE,
+    longitude: stage.location.longitude,
+  };
+}
+
+/** Current mock position; null without the permission. */
+function currentPosition(): Coordinates | null {
+  return locationAllowed ? positionOf(positionTarget) : null;
+}
+
+export function getMockPosition(): MockPositionTarget {
+  return positionTarget;
+}
+
+/**
+ * TEMP until #32: moves the mock phone (dev switch on the Plan). The default
+ * is the gate, so S07 / 07b look like on their boards. Every watcher gets the
+ * new position at once.
+ */
+export function setMockPosition(target: MockPositionTarget): void {
+  positionTarget = target;
+  const position = currentPosition();
+  if (position === null) return;
+  for (const listener of [...positionListeners]) listener(position);
+}
+
+/**
+ * GPS of a phone that stands still until setMockPosition() moves it. A new
+ * watcher gets the current position right after subscribing.
+ */
+export const mockLocationService: ILocationService = {
+  requestPermissions: async () => locationAllowed,
+  getCurrentPosition: async () => currentPosition(),
+  watchPosition: async (onChange) => {
+    positionListeners.add(onChange);
+    const timer = setTimeout(() => {
+      const position = currentPosition();
+      if (position !== null) onChange(position);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      positionListeners.delete(onChange);
+    };
+  },
+  watchHeading: async (onChange) => {
+    const timer = setTimeout(() => onChange(MOCK_HEADING_DEG), MOCK_DELAY_MS);
+    return () => clearTimeout(timer);
+  },
+};
+const locationService = mockLocationService;
+
+/* ------------------------------------------------------------------ */
 /* Store deps                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -218,15 +300,33 @@ export const mockMessageDeps: MessageStoreDeps = {
 };
 
 /**
- * The real CheckInUseCase needs GPS and the festival clock (2027), so the mock
- * skips the geofence and the time window and always lets the user in.
+ * TEMP until #32. Like CheckInUseCase: no GPS → LOCATION_UNAVAILABLE, outside
+ * the geofence of the concert's stage → TooFarFromStageError(distance), and the
+ * write can fail (failNextWrite) → the store rolls back.
+ * The time window (isCheckInOpen) is skipped on purpose: the demo clock only
+ * shifts the line-up roughly to „now”, and the screen already blocks check-in
+ * outside the window – so the mock and its tests never depend on the wall clock.
  */
 export const mockCheckInDeps: CheckInStoreDeps = {
   checkIn: {
     execute: async ({ userId, concertId }): Promise<CheckInResult> => {
+      const concert = demoConcerts.find((c) => c.id === concertId);
+      if (concert === undefined) {
+        throw new DomainError("CONCERT_NOT_FOUND", `Concert ${concertId} not found.`);
+      }
+      const stage = mockStages.find((s) => s.id === concert.stageId);
+      if (stage === undefined) {
+        throw new DomainError("STAGE_NOT_FOUND", `Stage ${concert.stageId} not found.`);
+      }
       if (checkIns.some((c) => c.userId === userId && c.concertId === concertId)) {
         return { status: "already_checked_in" };
       }
+      const position = await locationService.getCurrentPosition();
+      if (position === null) {
+        throw new DomainError("LOCATION_UNAVAILABLE", "Current location is unavailable.");
+      }
+      const { isInside, distanceMeters } = checkGeofence(position, stage.location);
+      if (!isInside) throw new TooFarFromStageError(distanceMeters);
       await write();
       const checkIn: CheckIn = {
         id: idGenerator.generate(),
@@ -235,7 +335,7 @@ export const mockCheckInDeps: CheckInStoreDeps = {
         createdAt: new Date().toISOString(),
       };
       checkIns = [...checkIns, checkIn];
-      return { status: "checked_in", checkIn, distanceMeters: 0 };
+      return { status: "checked_in", checkIn, distanceMeters };
     },
   },
   loadCheckIns: async (userId) => {
@@ -301,34 +401,6 @@ const transitRepository: ITransitRepository = {
   getAlerts: async () => demoAlerts(),
   saveAlerts: async () => undefined,
 };
-
-let locationAllowed = true;
-
-/** Flip the mock permission from a dev menu to demo the „Otwórz ustawienia” state. */
-export function setMockLocationAllowed(value: boolean): void {
-  locationAllowed = value;
-}
-
-/** Phone heading in the mock: north. */
-const MOCK_HEADING_DEG = 0;
-
-/**
- * GPS fixed at the festival gate. The watchers emit once, right after
- * subscribing, like a device that does not move.
- */
-export const mockLocationService: ILocationService = {
-  requestPermissions: async () => locationAllowed,
-  getCurrentPosition: async () => (locationAllowed ? mockGatePosition : null),
-  watchPosition: async (onChange) => {
-    const timer = setTimeout(() => onChange(mockGatePosition), 0);
-    return () => clearTimeout(timer);
-  },
-  watchHeading: async (onChange) => {
-    const timer = setTimeout(() => onChange(MOCK_HEADING_DEG), MOCK_DELAY_MS);
-    return () => clearTimeout(timer);
-  },
-};
-const locationService = mockLocationService;
 
 export const mockTransitDeps: TransitStoreDeps = {
   getNearbyStops: new GetNearbyStopsUseCase(transitRepository, locationService),
