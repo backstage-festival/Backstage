@@ -27,11 +27,17 @@ export function buttonColors(
   variant: ButtonVariant,
   surface: ButtonSurface,
   disabled: boolean,
+  selected: boolean = false,
 ): ButtonColors {
   const c: ColorTokens = theme.colors;
   const transparent = "transparent";
   const onDark = surface === "dark";
   const ink = c.textOnLaminate;
+
+  // E05a „W planie”: a selected secondary on dark is a laminate fill with ink text.
+  if (selected && !disabled && variant === "secondary" && onDark) {
+    return { background: c.laminate, backgroundPressed: c.laminateTrack, foreground: ink, border: c.laminate, borderWidth: 0 };
+  }
 
   if (disabled) {
     const outlined = variant === "secondary" || variant === "destructive";
@@ -141,11 +147,12 @@ export function Button({
   width,
   accessibilityHint,
   underline = false,
+  selected,
   onPress,
 }: ButtonElementProps) {
   const { theme, level } = useTheme();
   const { scale, onPressIn, onPressOut } = usePressScale();
-  const colors = buttonColors(theme, variant, surface, disabled);
+  const colors = buttonColors(theme, variant, surface, disabled, selected === true);
   const iconName = icon ?? (variant === "destructive" ? "close" : undefined);
   const fill = width === "fill";
   const leading = iconName !== undefined && iconLeads(iconName);
@@ -164,7 +171,7 @@ export function Button({
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityHint={disabled ? (disabledReason ?? accessibilityHint) : accessibilityHint}
-        accessibilityState={{ disabled }}
+        accessibilityState={selected === undefined ? { disabled } : { disabled, selected }}
         {...(link ? { hitSlop: linkHitSlop(Number(labelStyle.lineHeight)) } : null)}
       >
         {({ pressed }) => (
