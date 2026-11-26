@@ -96,26 +96,36 @@
         });
       }
 
+      function userIcon(headingDegrees) {
+        var rotation = typeof headingDegrees === "number" ? headingDegrees : 0;
+        return L.divIcon({
+          className: "backstage-marker backstage-marker--me",
+          html:
+            '<span style="display:block;width:20px;height:20px;border-radius:50%;background:#111827;border:2px solid #fff;transform:rotate(' +
+            rotation +
+            'deg);"></span>',
+          iconSize: [20, 20],
+        });
+      }
+
       function setUserPosition(position, headingDegrees) {
-        if (userMarker) {
-          map.removeLayer(userMarker);
-          userMarker = null;
-        }
         if (!position) {
+          if (userMarker) {
+            map.removeLayer(userMarker);
+            userMarker = null;
+          }
           return;
         }
-        var rotation = typeof headingDegrees === "number" ? headingDegrees : 0;
-        userMarker = L.marker([position.latitude, position.longitude], {
-          icon: L.divIcon({
-            className: "backstage-marker backstage-marker--me",
-            html:
-              '<span style="display:block;width:20px;height:20px;border-radius:50%;background:#111827;border:2px solid #fff;transform:rotate(' +
-              rotation +
-              'deg);"></span>',
-            iconSize: [20, 20],
-          }),
-          zIndexOffset: 1000,
-        }).addTo(map);
+        var latlng = [position.latitude, position.longitude];
+        if (userMarker) {
+          userMarker.setLatLng(latlng);
+          userMarker.setIcon(userIcon(headingDegrees));
+        } else {
+          userMarker = L.marker(latlng, {
+            icon: userIcon(headingDegrees),
+            zIndexOffset: 1000,
+          }).addTo(map);
+        }
       }
 
       function centerOn(latitude, longitude, zoom) {

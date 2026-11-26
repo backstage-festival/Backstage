@@ -53,7 +53,7 @@ export function MapView({
     webViewRef.current?.injectJavaScript(
       buildInjectedCommand({ type: "centerOn", ...centerOn }),
     );
-  }, [centerOn, isReady]);
+  }, [centerOn?.latitude, centerOn?.longitude, centerOn?.zoom, isReady]);
 
   const handleMessage = useCallback((event: WebViewMessageEvent) => {
     const message = parseMapEvent(event.nativeEvent.data);
