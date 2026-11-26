@@ -4,9 +4,10 @@
  */
 import { PLAN_NOTE_HEIGHT } from "@/components/PlanNoteRow";
 import { PLAYED_ROW_HEIGHT } from "@/components/PlayedRow";
-import { performanceCardHeight } from "@/components/PerformanceCard";
+import { performanceCardHeight, stageNumber } from "@/components/PerformanceCard";
 import { SECTION_HEADER_HEIGHT } from "@/components/SectionHeader";
 import {
+  FALLBACK_STAGE_ID,
   formatTime,
   type NowPassData,
   type PerformanceCardData,
@@ -94,6 +95,22 @@ export function stageCodesOf(stages: readonly Stage[]): StageCodes {
   return codes;
 }
 
+/**
+ * Pass serial „0702-S1-02” – used by the Plan's NowPass and the concert card.
+ * ASSUMPTION (the domain has no serial yet): festival day (MMDD) · stage code ·
+ * order of the concert on its stage that festival day, two digits.
+ */
+export function passSerial(concert: Concert, stageNo: number, concerts: readonly Concert[]): string {
+  const day = festivalDayOf(concert.startsAt);
+  const [, month = "00", date = "00"] = day.split("-");
+  const order =
+    concerts
+      .filter((c) => c.stageId === concert.stageId && festivalDayOf(c.startsAt) === day)
+      .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))
+      .findIndex((c) => c.id === concert.id) + 1;
+  return `${month}${date}-S${stageNo}-${String(Math.max(1, order)).padStart(2, "0")}`;
+}
+
 /** First planned concert overlapping `concert` (domain rule). Bad data never throws while rendering. */
 export function firstConflict(concert: Concert, planned: readonly Concert[]): Concert | undefined {
   try {
@@ -145,7 +162,6 @@ export interface PlanInput {
   readonly now: Date;
   readonly playedExpanded: boolean;
   readonly note: PlanNote | null;
-  readonly serial: string;
   readonly accentSuppressed: boolean;
 }
 
@@ -203,13 +219,14 @@ export function buildPlanView(input: PlanInput): PlanView {
   const current = [...playing].sort((a, b) => Number(plannedIds.has(b.id)) - Number(plannedIds.has(a.id)));
   const [first, second] = current;
   const firstStage = first ? stageById.get(first.stageId) : undefined;
+  const firstCode = firstStage ? stageCodes[firstStage.id] : undefined;
   const secondStage = second ? stageById.get(second.stageId) : undefined;
   const secondCode = secondStage ? stageCodes[secondStage.id] : undefined;
   const nowPass =
     first && firstStage
       ? toNowPassProps(first, firstStage, {
           inPlan: plannedIds.has(first.id),
-          serial: input.serial,
+          serial: passSerial(first, stageNumber(firstCode ?? FALLBACK_STAGE_ID), concerts),
           accentSuppressed: input.accentSuppressed,
           stageCodes,
           now,
